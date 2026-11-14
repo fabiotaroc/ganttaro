@@ -60,4 +60,15 @@
    current official docs.
    Verified: Claude plugin and marketplace validation; skills CLI discovery.
 
-Step 10, Safari export comparison and the deployed acceptance scenario remain.
+10. Vercel preview deployed and available automated acceptance checks passed.
+    The final implementation is commit 8e49eb4, deployed at
+    https://ganttaro-cloa2vsiz-taros-projects-eccc3646.vercel.app.
+    Both the MCP client script and expanded Chrome scenario pass remotely.
+    There are now 43 passing tests; build, lint, TypeScript, plugin and skill
+    validation pass.
+
+[Verification evidence](../verification/0001-first-milestone.md) records the exact
+checks and limits. The literal Claude Code model scenario is pending because
+that provider is disabled in T3. Safari comparison is explicitly deferred at the
+user's request. The seven-step acceptance scenario is therefore not claimed
+fully complete.
