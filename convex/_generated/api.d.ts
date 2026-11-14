@@ -8,13 +8,19 @@
  * @module
  */
 
+import type * as charts from "../charts.js";
+import type * as presence from "../presence.js";
+
 import type {
   ApiFromModules,
   FilterApi,
   FunctionReference,
 } from "convex/server";
 
-declare const fullApi: ApiFromModules<{}>;
+declare const fullApi: ApiFromModules<{
+  charts: typeof charts;
+  presence: typeof presence;
+}>;
 
 /**
  * A utility for referencing Convex functions in your app's public API.
@@ -42,4 +48,6 @@ export declare const internal: FilterApi<
   FunctionReference<any, "internal">
 >;
 
-export declare const components: {};
+export declare const components: {
+  presence: import("@convex-dev/presence/_generated/component.js").ComponentApi<"presence">;
+};

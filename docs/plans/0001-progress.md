@@ -13,4 +13,10 @@
    stable Tidy, shared layout, compact JSON, field changes and diffs.
    Verified: 26 Vitest cases and strict TypeScript checking.
 
-Steps 3–10 and the deployed acceptance scenario remain.
+3. Convex storage complete: structured Chart, Item, Group and Revision records;
+   one authorised mutation path; stale Agent Edit rejection; restore and inverse
+   restoration; Edit/View Link access; Convex presence component.
+   Verified: 34 tests total, Convex TypeScript, successful cloud deployment, and
+   live development create/Agent Edit/View Link read.
+
+Steps 4–10 and the deployed acceptance scenario remain.
