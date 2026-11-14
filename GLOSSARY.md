@@ -63,7 +63,7 @@ _Avoid_: Error, violation
 ## Editing
 
 **Manual Edit**:
-A change someone makes by hand in the Chart: dragging, resizing or renaming.
+A change a person makes by hand in the Chart, such as dragging, resizing, renaming, drawing a Dependency or editing an Item's details.
 _Avoid_: UI edit, human edit, text edit
 
 **Agent Edit**:
