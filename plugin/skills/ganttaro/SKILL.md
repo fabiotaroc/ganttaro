@@ -44,8 +44,9 @@ Items are Tasks (`start` and `end`, inclusive) or Milestones (`on`). They store 
 duration. Dates are ISO strings without times. Empty fields are omitted.
 `get_chart` omits Item descriptions and links; `get_items` includes them.
 
-For `create_chart`, pass `title`, optional Chart fields, and `items` without
-versions; IDs are optional. Include Groups and Dependencies in that call. An
+For `create_chart`, pass the compact shape above (`chart` settings, `holidays`,
+`groups`, and `items`); read versions are accepted but reset for the new Chart.
+A top-level `title` and optional Chart fields are also accepted as a short spec; IDs are optional. Include Groups and Dependencies in that call. An
 agent turns the person's brief into these fields. Alternatively `spec` accepts
 this small line format, with the title first:
 

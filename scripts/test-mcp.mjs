@@ -11,7 +11,7 @@ const call = async (name, args) => {
 };
 try {
   const tools = await client.listTools(); assert.equal(tools.tools.length, 13);
-  const created = await call('create_chart', { title: 'MCP verification', holidays: ['2026-12-08'], groups: [{ id: 'build', name: 'Build', color: 'indigo' }], items: [
+  const created = await call('create_chart', { chart: { title: 'MCP verification', zoom: 'weeks' }, holidays: ['2026-12-08'], groups: [{ id: 'build', name: 'Build', color: 'indigo' }], items: [
     { id: 'kickoff', name: 'Kickoff', on: '2026-11-16' },
     { id: 'api', name: 'Build API', start: '2026-11-17', end: '2026-11-20', after: ['kickoff'], group: 'build' },
   ] });

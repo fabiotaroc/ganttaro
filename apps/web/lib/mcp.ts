@@ -42,8 +42,8 @@ export function createMcpServer(db: ConvexHttpClient, origin: string, client: st
     try { return await db.mutation(api.charts.write, { key, kind: 'Agent (MCP)', client, ...(input.changes ? { changes: input.changes } : {}), ...(input.restore ? { restore: input.restore, versions: input.versions } : {}) }); }
     finally { await db.mutation(api.presence.disconnect, { sessionToken: presence.sessionToken }); }
   }
-  server.registerTool('create_chart', { description: 'Create a Chart from compact JSON fields or a short spec: first line title, then Name | YYYY-MM-DD [.. YYYY-MM-DD] per Item. Return both secret links. Dates are inclusive weekdays.', inputSchema: { title: z.string().optional(), description: z.string().optional(), zoom: z.enum(['days','weeks','months']).optional(), holidays: z.array(date).optional(), groups: z.array(group).optional(), items: z.array(itemInput).optional(), spec: z.string().optional() } }, async input => {
-    let title = input.title, inputs = input.items ?? [];
+  server.registerTool('create_chart', { description: 'Create a Chart from compact JSON fields or a short spec: first line title, then Name | YYYY-MM-DD [.. YYYY-MM-DD] per Item. Return both secret links. Dates are inclusive weekdays.', inputSchema: { chart: z.object({ id: z.string().optional(), title: z.string(), description: z.string().optional(), version: z.number().optional(), zoom: z.enum(['days','weeks','months']).optional() }).optional(), title: z.string().optional(), description: z.string().optional(), zoom: z.enum(['days','weeks','months']).optional(), holidays: z.array(date).optional(), groups: z.array(group).optional(), items: z.array(itemInput).optional(), spec: z.string().optional() } }, async input => {
+    let title = input.chart?.title ?? input.title, inputs = input.items ?? [];
     if (input.spec) {
       const lines = input.spec.split('\n').map(line => line.trim()).filter(Boolean);
       title ??= lines.shift();
@@ -57,7 +57,7 @@ export function createMcpServer(db: ConvexHttpClient, origin: string, client: st
     const ids: string[] = [];
     const items: Item[] = inputs.map(input => { const id = input.id ?? generateId(input.name, ids); ids.push(id); return { ...input, id, version: 1 } as Item; });
     const key = randomBytes(32).toString('base64url'), viewKey = randomBytes(32).toString('base64url');
-    const response = await db.mutation(api.charts.write, { key, kind: 'Agent (MCP)', client, create: { viewKey, title, ...(input.description ? { description: input.description } : {}), zoom: input.zoom ?? 'weeks', holidays: input.holidays ?? italianHolidays(Number((items[0]?.on ?? items[0]?.start ?? new Date().toISOString()).slice(0,4))), groups: input.groups ?? [], items } });
+    const response = await db.mutation(api.charts.write, { key, kind: 'Agent (MCP)', client, create: { viewKey, title, ...((input.chart?.description ?? input.description) ? { description: input.chart?.description ?? input.description } : {}), zoom: input.chart?.zoom ?? input.zoom ?? 'weeks', holidays: input.holidays ?? italianHolidays(Number((items[0]?.on ?? items[0]?.start ?? new Date().toISOString()).slice(0,4))), groups: input.groups ?? [], items } });
     return result({ ...response, editLink: `${origin}/c/${key}`, viewLink: `${origin}/v/${viewKey}` });
   });
   server.registerTool('get_chart', { description: 'Read a Chart as compact JSON in stored row order. Includes Conflicts, flags and Item versions; excludes Item description and links.', inputSchema: link }, async ({ link }) => result(await db.query(api.charts.get, { key: chartKey(link) })));
