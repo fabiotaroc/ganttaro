@@ -1,0 +1,14 @@
+{
+  "name": "ganttaro",
+  "owner": {
+    "name": "Taro"
+  },
+  "plugins": [
+    {
+      "name": "ganttaro",
+      "source": "./plugin",
+      "description": "Read and edit shared Ganttaro Charts through MCP."
+    }
+  ],
+  "description": "Ganttaro Chart tools and agent instructions."
+}

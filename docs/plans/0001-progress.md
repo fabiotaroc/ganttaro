@@ -55,4 +55,9 @@
    Additional Chrome checks passed: hidden weekends, live View Link, Manual
    rename, Bridge Dependency and distinct Revision kinds.
 
-Steps 9–10 and the deployed acceptance scenario remain.
+9. Plugin packaged: Ganttaro skill, private Claude Code marketplace manifest,
+   HTTP MCP config, Codex and Cursor configs, and install guide checked against
+   current official docs.
+   Verified: Claude plugin and marketplace validation; skills CLI discovery.
+
+Step 10, Safari export comparison and the deployed acceptance scenario remain.
