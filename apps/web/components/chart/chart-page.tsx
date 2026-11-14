@@ -14,6 +14,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { recordRecent } from '@/lib/recent';
+import { AgentBridge } from './agent-bridge';
 import { Details, type EventEdit } from './details';
 export function ChartPage({ chartKey, readOnly }: { chartKey: string; readOnly: boolean }) {
   const data = useQuery(api.charts.get, { key: chartKey, full: true });
@@ -44,7 +45,7 @@ function LoadedChart({ initial, chartKey, readOnly }: { initial: CompactChart; c
     if (readOnly) throw new Error('A View Link cannot edit');
     const validation = applyChanges(chart, changes);
     if (!validation.ok) throw new Error(validation.reasons.join('; '));
-    const manual = ['pointer','keyboard','mouse','touch','pen'].includes(details.source);
+    const manual = ['pointer','keyboard','mouse','touch','pen','virtual'].includes(details.source);
     const result = await mutation({ key: chartKey, kind: manual ? 'Manual' : 'Agent (Bridge)', ...(manual ? {} : { client: 'Browser agent' }), changes });
     if (!result.ok) throw new Error(result.reasons.join('; '));
     setUndo(value => [...value, result.revisionId]); setRedo([]); setMessage('');
@@ -65,12 +66,12 @@ function LoadedChart({ initial, chartKey, readOnly }: { initial: CompactChart; c
   const last = chart.items.map(endOf).sort().at(-1) ?? addDays(first, 30);
   const start = addDays(first, -7), end = addDays(last, 21);
   const item = chart.items.find(item => item.id === selected);
-  return <main className="chart-page">
+  return <main className="chart-page"><AgentBridge />
     <header className="chart-topbar"><Link className="wordmark" href="/">ganttaro<span>↗</span></Link><span className="chart-access">{readOnly ? 'View Link' : 'Edit Link'}</span><div className="presence">{presence?.filter(person => person.online).map(person => <span key={person.userId} title={person.userId}>{person.userId}</span>)}</div></header>
     <section className="chart-intro"><div><p className="eyebrow">Shared Chart</p><h1>{chart.title || 'Untitled Chart'}</h1>{chart.description && <p className="chart-description">{chart.description}</p>}</div><div className="chart-actions">{!readOnly && <><Button variant="outline" onClick={() => setDialog('settings')}>Chart settings</Button><Button onClick={() => setDialog('create')}>＋ New Item</Button></>}</div></section>
     <section className="chart-toolbar"><div className="zoom-control" aria-label="Zoom">{(['days','weeks','months'] as const).map(value => <Button key={value} variant={zoom === value ? 'secondary' : 'ghost'} size="sm" onClick={() => setZoom(value)}>{value[0].toUpperCase()+value.slice(1)}</Button>)}</div><div className="chart-actions">{!readOnly && <><Button variant="ghost" size="sm" onClick={event => void edit([{ type: 'chart', fields: { zoom } }], event)}>Set as default zoom</Button><Button variant="outline" size="sm" onClick={event => void edit([{ type: 'tidy' }], event)}>Tidy</Button><Button variant="ghost" size="sm" disabled={!undo.length} onClick={() => { const id = undo.at(-1)!; void restore(id, true).then(() => { setUndo(value => value.slice(0,-1)); setRedo(value => [...value,id]); }).catch(error => report(error.message)); }}>Undo</Button><Button variant="ghost" size="sm" disabled={!redo.length} onClick={() => { const id = redo.at(-1)!; void restore(id).then(() => { setRedo(value => value.slice(0,-1)); setUndo(value => [...value,id]); }).catch(error => report(error.message)); }}>Redo</Button></>}<Button variant="ghost" size="sm" onClick={() => setDialog('history')}>Revisions</Button></div></section>
     {message && <div className="chart-message" role="alert">{message}<Button variant="ghost" size="sm" onClick={() => setMessage('')}>Dismiss</Button></div>}
-    <Gantt chart={{ ...chart, zoom }} start={start} end={end} readOnly={readOnly} onEdit={write} onOpen={setSelected} onError={report} onRestore={id => restore(id,false,true)} onHoliday={(date,event) => { void edit([{ type:'holidays',dates: chart.holidays.includes(date) ? chart.holidays.filter(value => value !== date) : [...chart.holidays,date] }],event); }} onDisconnect={(id,after,event) => { const item = chart.items.find(value => value.id === id)!; void edit([{ type:'update',id,version:item.version,fields:{after:item.after?.filter(value => value !== after)} }],event); }} />
+    <Gantt chart={{ ...chart, zoom }} start={start} end={end} readOnly={readOnly} onEdit={write} onOpen={setSelected} onError={report} onRestore={id => restore(id,false,true)} onHistory={() => history ?? []} onHoliday={(date,event) => { void edit([{ type:'holidays',dates: chart.holidays.includes(date) ? chart.holidays.filter(value => value !== date) : [...chart.holidays,date] }],event); }} onDisconnect={(id,after,event) => { const item = chart.items.find(value => value.id === id)!; void edit([{ type:'update',id,version:item.version,fields:{after:item.after?.filter(value => value !== after)} }],event); }} />
     <footer className="chart-footer"><span>{chart.items.length} Items · {chart.groups.length} Groups · {initial.conflicts.length} Conflicts</span><span>Weekends hidden · Dates never move automatically</span></footer>
     <p className="chart-keyboard">Arrow keys navigate. Enter opens details. F2 renames. Alt+arrows moves dates; add Shift to resize. Space on a name reorders. C draws a Dependency. Delete removes.</p>
     {item && <Details key={item.id} chart={chart} item={item} readOnly={readOnly} onClose={() => setSelected(null)} edit={edit} />}

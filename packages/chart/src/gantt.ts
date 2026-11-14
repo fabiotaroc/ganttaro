@@ -9,6 +9,7 @@ export type GanttOptions = {
   onOpen: (id: string) => void;
   onError: (message: string) => void;
   onRestore: (id: string) => Promise<unknown>;
+  onHistory: () => unknown;
 };
 export function bridgeState(chart: Chart) {
   return chart.items.length <= 60 ? compact(chart) : { chart: { id: chart.id, title: chart.title, version: chart.version }, itemCount: chart.items.length, hint: 'Call describe for full compact JSON' };
@@ -17,12 +18,12 @@ function spansFor(options: Pick<GanttOptions, 'chart' | 'start' | 'end'>): Chart
   const positions = layout(options.chart, { start: options.start, end: options.end });
   return options.chart.items.map((item, index) => ({ id: item.id, track: item.id, name: item.name, start: positions.bars[index].x / positions.columnWidth, end: (positions.bars[index].x + positions.bars[index].width) / positions.columnWidth }));
 }
-export const readActions = ['get_chart', 'get_items', 'describe'];
+export const readActions = ['get_chart', 'get_items', 'describe', 'list_revisions'];
 export const editActions = ['add_items','update_items','remove','set_dependencies','set_holidays','tidy','update_chart','set_groups','reorder','restore_revision'];
 export function makeGantt(readOnly: boolean) {
   return definePrimitive({
     name: 'gantt',
-    options: { chart: 'value', start: 'string', end: 'string', onRequestChange: 'callback', settled: 'action', onOpen: 'callback', onError: 'callback', onRestore: 'action' },
+    options: { chart: 'value', start: 'string', end: 'string', onRequestChange: 'callback', settled: 'action', onOpen: 'callback', onError: 'callback', onRestore: 'action', onHistory: 'action' },
     controlled: ['value'],
     state: (options: GanttOptions) => ({ chart: options.chart, value: bridgeState(options.chart), items: spansFor(options), order: options.chart.items.map(item => item.id), request: [] as Change[], active: null as GridCell | null, draft: null as SpansDraft<ChartSpan> | null, moving: null as ReorderDraft | null, connecting: null as ConnectDraft | null, editing: null as string | null }),
     sync: options => ({ chart: options.chart, value: bridgeState(options.chart), items: spansFor(options), order: options.chart.items.map(item => item.id) }),
@@ -84,9 +85,10 @@ export function makeGantt(readOnly: boolean) {
       return {
         grid, spans, reorder, edit, connect, item, recovery,
         get_chart: () => compact(chart()), describe: () => compact(chart()),
+        list_revisions: () => context.options().onHistory(),
         get_items: (ids: string[]) => chart().items.filter(value => ids.includes(value.id)),
-        add_items: (items: Extract<Change, {type:'add'}>['item'][], index?: number) => run(items.map((value, offset) => ({ type: 'add', item: value, ...(index === undefined ? {} : { index: index + offset }) }))),
-        update_items: (items: { id: string; fields: Extract<Change, {type:'update'}>['fields'] }[]) => run(items.map(value => versioned(value.id, value.fields))),
+        add_items: (items: Extract<Change, {type:'add'}>['item'][], index?: number) => { if (items.length !== 1) throw new Error('The Agent Bridge adds one Item at a time'); return run([{ type: 'add', item: items[0], ...(index === undefined ? {} : { index }) }]); },
+        update_items: (items: { id: string; fields: Extract<Change, {type:'update'}>['fields'] }[]) => { if (items.length !== 1) throw new Error('The Agent Bridge edits one Item at a time'); return run(items.map(value => versioned(value.id, value.fields))); },
         remove: (id: string) => { const found = item(id); return run([{ type: 'delete', id: found.id, version: found.version }]); },
         set_dependencies: (id: string, after: string[]) => run([versioned(id, { after })]),
         set_holidays: (dates: string[]) => run([{ type: 'holidays', dates }]),

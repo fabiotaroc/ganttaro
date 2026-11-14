@@ -6,11 +6,11 @@ import { gantt, viewGantt, type EditDetails } from './gantt';
 const editParts = createParts(gantt, { root: 'div', grid: 'div', row: 'div', label: 'div', input: 'input', track: 'div', bar: 'div', port: 'span' });
 const viewParts = createParts(viewGantt, { root: 'div', grid: 'div', row: 'div', label: 'div', input: 'input', track: 'div', bar: 'div', port: 'span' });
 export const rowHeight = 48;
-export function Gantt({ chart, start, end, readOnly, onEdit, onOpen, onError, onRestore, onHoliday, onDisconnect }: {
+export function Gantt({ chart, start, end, readOnly, onEdit, onOpen, onError, onRestore, onHistory, onHoliday, onDisconnect }: {
   chart: Chart; start: string; end: string; readOnly: boolean;
   onEdit: (changes: Change[], details: EditDetails) => Promise<unknown>;
   onOpen: (id: string) => void; onError: (message: string) => void;
-  onRestore: (id: string) => Promise<unknown>;
+  onRestore: (id: string) => Promise<unknown>; onHistory: () => unknown;
   onHoliday: (date: string, event: React.MouseEvent) => void;
   onDisconnect: (item: string, after: string, event: React.KeyboardEvent | React.MouseEvent) => void;
 }) {
@@ -23,7 +23,7 @@ export function Gantt({ chart, start, end, readOnly, onEdit, onOpen, onError, on
   const flagged = new Set(flags(chart).map(value => value.item));
   return <parts.Root chart={chart} start={start} end={end} aria-label="Chart" className="gantt" data-chart-id={chart.id}
     onRequestChange={(changes, details) => { pending.current = onEdit(changes, details); void pending.current.catch(error => onError(error instanceof Error ? error.message : String(error))); }}
-    settled={() => pending.current} onOpen={onOpen} onError={onError} onRestore={onRestore}>
+    settled={() => pending.current} onOpen={onOpen} onError={onError} onRestore={onRestore} onHistory={onHistory}>
     {state => {
       const byId = new Map(chart.items.map(item => [item.id, item]));
       const spanById = new Map(state.items.map(span => [span.id, span]));

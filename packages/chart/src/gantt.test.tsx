@@ -14,7 +14,7 @@ beforeAll(() => {
 afterEach(cleanup);
 const chart: Chart = { id:'ch-test',title:'Test',version:1,zoom:'weeks',holidays:['2026-11-17'],groups:[],items:[{id:'api',name:'API',start:'2026-11-16',end:'2026-11-20',version:1},{id:'kickoff',name:'Kickoff',on:'2026-11-16',version:1}] };
 const tick = () => act(() => new Promise(resolve=>setTimeout(resolve,0)));
-function props(readOnly=false) { return {chart,start:'2026-11-16',end:'2026-11-30',readOnly,onEdit:vi.fn(async()=>({ok:true})),onOpen:vi.fn(),onError:vi.fn(),onRestore:vi.fn(async()=>({ok:true})),onHoliday:vi.fn(),onDisconnect:vi.fn()}; }
+function props(readOnly=false) { return {chart,start:'2026-11-16',end:'2026-11-30',readOnly,onEdit:vi.fn(async()=>({ok:true})),onOpen:vi.fn(),onError:vi.fn(),onRestore:vi.fn(async()=>({ok:true})),onHistory:vi.fn(()=>[]),onHoliday:vi.fn(),onDisconnect:vi.fn()}; }
 test('renders a named grid, real dates, Milestones, Holiday columns and hidden annotation IDs',async()=>{
   const options=props();render(<Gantt {...options}/>);await tick();
   expect(screen.getByRole('grid',{name:'Chart'}).getAttribute('aria-colcount')).toBe('2');

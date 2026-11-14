@@ -39,4 +39,11 @@
    in localStorage; removing an entry only changes that browser list.
    Verified: production build, ESLint and 37 tests.
 
-Steps 7–10 and the deployed acceptance scenario remain.
+7. Agent Bridge complete: one Chart control, compact state through 60 Items,
+   summary plus describe above 60, WebMCP registration and window.ganttaro.
+   View Links expose read actions only. Deletion (and restoration which may
+   delete Items) waits for a person to click confirmation through allow.
+   Verified: 40 tests, every advertised action, cutoff, refusal/confirmation,
+   source tags and a keyboard-interaction mutation check. Build and lint pass.
+
+Steps 8–10 and the deployed acceptance scenario remain.
