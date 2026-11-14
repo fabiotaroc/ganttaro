@@ -69,21 +69,23 @@ export function makeGantt(readOnly: boolean) {
       });
       const reorder = createReorder(context, { slot: 'label', key: 'order', draft: 'moving', orientation: () => 'vertical', label: id => item(id).name, disabled: () => readOnly, set: (ids, details) => emit([{ type: 'order', ids }], details.reason, details.event) });
       const edit = createInlineEdit(context, { key: 'editing', value: id => item(id).name, disabled: () => readOnly, commit: (id, name, details) => emit([versioned(id, { name })], details.reason, details.event) });
-      const connect = createConnect(context, {
-        slot: 'port', draft: 'connecting',
-        canConnect: (from, to) => {
+      let fromPort: string | null = null;
+      const canConnect = (from: string, to: string) => {
           if (readOnly || !from.endsWith(':out') || !to.endsWith(':in')) return false;
           const a = from.slice(0,-4), b = to.slice(0,-3);
           const loop = a === b || hasCycle(chart().items.map(value => value.id === b ? { ...value, after: [...value.after ?? [], a] } : value));
-          if (loop) context.options().onError('That Dependency would create a loop');
           return !loop;
-        },
+      };
+      const connect = createConnect(context, {
+        slot: 'port', draft: 'connecting', canConnect,
         point: (x, y) => { const rect = context.element('grid')?.getBoundingClientRect(); return rect ? { x: x - rect.left, y: y - rect.top } : { x, y }; },
         label: port => `${item(port.split(':')[0]).name} ${port.endsWith(':out') ? 'end' : 'start'}`,
         connect: (from, to, details) => { const found = item(to.slice(0,-3)); return emit([versioned(found.id, { after: [...new Set([...found.after ?? [], from.slice(0,-4)])] })], details.reason, details.event); },
       });
       return {
         grid, spans, reorder, edit, connect, item, recovery,
+        beginConnection: (event: PointerEvent, key: string, el: HTMLElement) => { fromPort = key; connect.pointerdown(event,key,el); },
+        endConnection: (key: string) => { if (fromPort?.endsWith(':out') && key.endsWith(':in') && !canConnect(fromPort,key)) context.options().onError('That Dependency would create a loop'); fromPort = null; },
         get_chart: () => compact(chart()), describe: () => compact(chart()),
         list_revisions: () => context.options().onHistory(),
         get_items: (ids: string[]) => chart().items.filter(value => ids.includes(value.id)),
@@ -124,7 +126,7 @@ export function makeGantt(readOnly: boolean) {
       input: slot({ on: { keydown: (event, { api }) => api.edit.inputKeydown(event), focusout: (event, { api }) => api.edit.end('focus-out', event) }, bind: (el, { api }) => api.edit.bindInput(el as HTMLInputElement) }),
       track: slot<{ value: string }>({ props: { value: 'string' }, bind: (el, { api, key }) => api.spans.bindTrack(el, key) }),
       bar: slot<{ value: string; row: number }>({ props: { value: 'string', row: 'number' }, role: 'gridcell', focus: 'roving', keys: ['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Home','End','Enter','Delete'], attrs: (state, part) => ({ tabindex: part.api.grid.tabIndex(state, { row: part.props.row, col: 1 }), ...part.api.spans.spanAttrs(state, part.key) }), on: { pointerdown: (event, { api, key }) => { if (!readOnly && !(event.target as HTMLElement).closest('[data-slot="gantt-port"],button,a')) api.spans.spanPointerdown(event, key); }, keydown: (event, { api, key }) => api.keydown(event, key, 1) }, bind: (el, part) => { const a = part.api.spans.bindSpan(el, part.key); const b = part.api.grid.bind(el, { row: part.props.row, col: 1 }); const c = part.api.recovery.bind(el, part); return () => { a?.(); b?.(); c(); }; } }),
-      port: slot<{ value: string }>({ props: { value: 'string' }, attrs: (state, part) => ({ 'aria-hidden': 'true', 'data-connect': part.api.connect.role(state, part.key) }), on: { pointerdown: (event, { el, api, key }) => { event.stopPropagation(); if (!readOnly && el) api.connect.pointerdown(event, key, el); } } }),
+      port: slot<{ value: string }>({ props: { value: 'string' }, attrs: (state, part) => ({ 'aria-hidden': 'true', 'data-connect': part.api.connect.role(state, part.key) }), on: { pointerdown: (event, { el, api, key }) => { event.stopPropagation(); if (!readOnly && el) api.beginConnection(event, key, el); }, pointerup: (_event, {api,key}) => api.endConnection(key) } }),
     }),
     agent: { actions: readOnly ? readActions : [...readActions, ...editActions.filter(action => action !== 'reorder'), 'reorderItems'], items: () => [] },
   });

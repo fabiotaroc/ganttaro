@@ -73,3 +73,10 @@ describe('the single Chart mutation path', () => {
     expect(await t.query(api.presence.list, { roomToken: session.roomToken })).toMatchObject([{ online: false }]);
   });
 });
+it('requires current Item versions for Agent restoration and refuses missing targets', async () => {
+  const t=setup();const first=await create(t);if(!first.ok)throw Error();
+  await t.mutation(api.charts.write,{key,kind:'Manual',changes:[{type:'update',id:'api',fields:{name:'Manual rename'}}]});
+  expect(await t.mutation(api.charts.write,{key,kind:'Agent (MCP)',restore:first.revisionId,versions:[{id:'api',version:1}]})).toMatchObject({ok:false,items:[{name:'Manual rename',version:2}]});
+  expect(await t.mutation(api.charts.write,{key,kind:'Agent (MCP)',restore:first.revisionId,versions:[{id:'api',version:2}]})).toMatchObject({ok:true});
+  expect(await t.mutation(api.charts.write,{key,kind:'Agent (MCP)',changes:[{type:'update',id:'deleted',version:1,fields:{name:'Missing'}}]})).toMatchObject({ok:false,missing:['deleted']});
+});

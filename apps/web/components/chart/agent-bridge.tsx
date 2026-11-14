@@ -22,5 +22,5 @@ export function AgentBridge() {
     const unregister = registerTools(agent,{allow:()=>true});
     return ()=>{unregister();removeConfirmation();if(window.ganttaro===agent)delete window.ganttaro;};
   },[]);
-  return <Dialog open={!!confirmation} onOpenChange={open=>{if(!open)confirmation?.resolve(false);}}><DialogContent data-agent-hidden><DialogTitle>Confirm Agent Edit</DialogTitle><DialogDescription>{confirmation?.message}</DialogDescription><div className="flex justify-end gap-3"><Button variant="outline" onClick={()=>confirmation?.resolve(false)}>Cancel</Button><Button variant="destructive" onClick={event=>{if(event.nativeEvent.isTrusted)confirmation?.resolve(true);}}>Allow deletion</Button></div></DialogContent></Dialog>;
+  return <Dialog open={!!confirmation} onOpenChange={open=>{if(!open)confirmation?.resolve(false);}}><DialogContent data-agent-hidden><DialogTitle>Confirm Agent Edit</DialogTitle><DialogDescription>{confirmation?.message}</DialogDescription><div className="flex justify-end gap-3"><Button variant="outline" onClick={()=>confirmation?.resolve(false)}>Cancel</Button><Button variant="destructive" onClick={event=>{if(event.nativeEvent.isTrusted)confirmation?.resolve(true);}}>Allow Agent Edit</Button></div></DialogContent></Dialog>;
 }

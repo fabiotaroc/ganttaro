@@ -18,6 +18,8 @@ View Link permits reads only. There are no accounts or Chart-listing tools.
    call `get_items` for the current Items, preserve unrelated edits, and retry.
 3. Report the accepted changes and any new Conflicts or flags. Each accepted
    change is a Revision; `list_revisions` supplies IDs for `restore_revision`.
+   For restoration, re-read `get_chart` and pass all current Items as
+   `versions: [{"id": "…", "version": 3}]`; stale restoration is refused.
 
 List Items in date order and keep Dependency chains together when presenting a
 plan. Stored row order changes only through an explicit reorder or Tidy request.

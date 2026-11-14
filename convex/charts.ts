@@ -50,7 +50,7 @@ export const write = mutation({
   args: {
     key: v.string(), kind: kindValue, client: v.optional(v.string()), changes: v.optional(v.any()),
     create: v.optional(v.object({ viewKey: v.string(), title: v.string(), description: v.optional(v.string()), zoom: v.optional(zoomValue), holidays: v.optional(v.array(v.string())), groups: v.optional(v.array(groupValue)), items: v.optional(v.array(itemValue)) })),
-    restore: v.optional(v.id('revisions')), inverse: v.optional(v.boolean()),
+    restore: v.optional(v.id('revisions')), versions: v.optional(v.array(v.object({id:v.string(),version:v.number()}))), inverse: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     let record: Doc<'charts'>, before: Chart;
@@ -69,6 +69,12 @@ export const write = mutation({
     if (args.restore) {
       const revision = await ctx.db.get(args.restore);
       if (!revision || revision.chartId !== record._id) throw new Error('Revision not found');
+      if (args.kind !== 'Manual') {
+        const expected = new Map((args.versions ?? []).map(item => [item.id,item.version]));
+        const current = before.items.filter(item => expected.get(item.id) !== item.version);
+        const missing = (args.versions ?? []).filter(item => !before.items.some(value => value.id === item.id)).map(item => item.id);
+        if (current.length || missing.length) return {ok:false as const,reasons:['Items changed since your last read. Call get_chart and retry restoring.'],items:current,missing};
+      }
       after = (args.inverse ? revision.before : revision.after) as Chart;
       after = { ...after, version: before.version + 1, items: after.items.map(item => ({ ...item, version: before.version + 1 })) };
     } else if (args.create) {
@@ -78,7 +84,8 @@ export const write = mutation({
       const changes = args.changes as Change[];
       if (args.kind !== 'Manual') {
         const stale = staleItems(before, changes);
-        if (stale.length) return { ok: false as const, reasons: ['Items changed since your last read. Call get_items and retry.'], items: stale };
+        const missing = changes.filter(change => (change.type === 'update' || change.type === 'delete') && !before.items.some(item => item.id === change.id)).map(change => (change as {id:string}).id);
+        if (stale.length || missing.length) return { ok: false as const, reasons: ['Items changed since your last read. Call get_items and retry.'], items: stale, missing };
       }
       const result = applyChanges(before, changes);
       if (!result.ok) return result;

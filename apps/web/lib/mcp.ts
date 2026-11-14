@@ -35,11 +35,11 @@ export function createMcpServer(db: ConvexHttpClient, origin: string, client: st
   const server = new McpServer({ name: 'Ganttaro', version: '0.1.0' });
   const result = (value: unknown) => ({ content: [{ type: 'text' as const, text: JSON.stringify(value) }], ...(typeof value === 'object' && value !== null && 'ok' in value && !value.ok ? { isError: true } : {}) });
   const link = { link: z.string().describe('Secret Chart Edit Link, View Link, or key. Writes require an Edit Link.') };
-  async function write(input: { link: string; changes?: Change[]; restore?: Id<'revisions'> }) {
+  async function write(input: { link: string; changes?: Change[]; restore?: Id<'revisions'>; versions?: {id:string;version:number}[] }) {
     const key = chartKey(input.link), sessionId = randomUUID();
     const count = input.changes?.filter(value => ['add','update','delete'].includes(value.type)).length ?? 0;
     const presence = await db.mutation(api.presence.heartbeat, { roomId: key, userId: `${client} is editing ${count} Items`, sessionId, interval: 30000 });
-    try { return await db.mutation(api.charts.write, { key, kind: 'Agent (MCP)', client, ...(input.changes ? { changes: input.changes } : {}), ...(input.restore ? { restore: input.restore } : {}) }); }
+    try { return await db.mutation(api.charts.write, { key, kind: 'Agent (MCP)', client, ...(input.changes ? { changes: input.changes } : {}), ...(input.restore ? { restore: input.restore, versions: input.versions } : {}) }); }
     finally { await db.mutation(api.presence.disconnect, { sessionToken: presence.sessionToken }); }
   }
   server.registerTool('create_chart', { description: 'Create a Chart from compact JSON fields or a short spec: first line title, then Name | YYYY-MM-DD [.. YYYY-MM-DD] per Item. Return both secret links. Dates are inclusive weekdays.', inputSchema: { title: z.string().optional(), description: z.string().optional(), zoom: z.enum(['days','weeks','months']).optional(), holidays: z.array(date).optional(), groups: z.array(group).optional(), items: z.array(itemInput).optional(), spec: z.string().optional() } }, async input => {
@@ -70,7 +70,7 @@ export function createMcpServer(db: ConvexHttpClient, origin: string, client: st
   server.registerTool('set_holidays', { description: 'Replace Chart Holidays with weekday ISO dates. Item dates never move.', inputSchema: { ...link, dates: z.array(date) } }, async ({ link, dates }) => result(await write({ link, changes: [{ type: 'holidays', dates }] })));
   server.registerTool('tidy', { description: 'Sort rows once by start date, keeping Dependency chains together. Never move dates.', inputSchema: link }, async ({ link }) => result(await write({ link, changes: [{ type: 'tidy' }] })));
   server.registerTool('update_chart', { description: 'Change title, description or default zoom.', inputSchema: { ...link, fields: chartFields } }, async ({ link, fields }) => result(await write({ link, changes: [{ type: 'chart', fields }] })));
-  server.registerTool('restore_revision', { description: 'Restore a previous Revision as a new Revision. Use list_revisions to find IDs.', inputSchema: { ...link, revision: z.string() } }, async ({ link, revision }) => result(await write({ link, restore: revision as Id<'revisions'> })));
+  server.registerTool('restore_revision', { description: 'Restore a previous Revision as a new Revision. Use list_revisions to find IDs.', inputSchema: { ...link, revision: z.string(), versions: z.array(deletion).describe('Versions of all current Items from get_chart. Refused if any changed.') } }, async ({ link, revision, versions }) => result(await write({ link, restore: revision as Id<'revisions'>, versions })));
   server.registerTool('list_revisions', { description: 'Read recent Revisions, their field diffs and IDs for restoration.', inputSchema: link }, async ({ link }) => result(await db.query(api.charts.history, { key: chartKey(link) })));
   return server;
 }

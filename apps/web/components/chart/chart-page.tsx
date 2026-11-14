@@ -61,7 +61,7 @@ function LoadedChart({ initial, chartKey, readOnly }: { initial: CompactChart; c
   async function restore(id: string, inverse = false, bridge = false) {
     if (readOnly) throw new Error('A View Link cannot edit');
     if (bridge) await ensureBridgeApproval('restore_revision');
-    const result = await mutation({ key: chartKey, kind: bridge ? 'Agent (Bridge)' : 'Manual', ...(bridge ? { client: 'Browser agent' } : {}), restore: id as Id<'revisions'>, inverse });
+    const result = await mutation({ key: chartKey, kind: bridge ? 'Agent (Bridge)' : 'Manual', ...(bridge ? { client: 'Browser agent' } : {}), restore: id as Id<'revisions'>, versions: chart.items.map(item => ({id:item.id,version:item.version})), inverse });
     if (!result.ok) throw new Error(result.reasons.join('; '));
     setMessage(''); return result;
   }
