@@ -63,6 +63,11 @@ try{
  assert.equal((await page.evaluate(()=>window.__deleteResult)).ok,true);await page.locator('.gantt-bar[data-item-id="temporary"]').waitFor({state:'detached'});
  const history=await call('list_revisions',{link:chart.editLink});assert(history.some(rev=>rev.kind==='Manual'));assert(history.some(rev=>rev.kind==='Agent (Bridge)'));
  for(const format of ['PNG','PDF']){const download=page.waitForEvent('download');await page.getByRole('button',{name:format,exact:true}).click();await(await download).saveAs(`/tmp/ganttaro-chrome.${format.toLowerCase()}`);}
+ await page.getByRole('button',{name:'Revisions',exact:true}).click();
+ await page.getByRole('dialog',{name:'Revisions',exact:true}).getByRole('button',{name:'Restore',exact:true}).last().click();
+ await viewer.getByRole('gridcell',{name:/Build API: 2026-11-17 to 2026-11-20/}).waitFor();
+ await page.getByRole('button',{name:'Undo',exact:true}).click();await viewer.getByRole('gridcell',{name:/Build API ready: 2026-11-17 to 2026-11-18/}).waitFor();
+ await page.getByRole('button',{name:'Redo',exact:true}).click();await viewer.getByRole('gridcell',{name:/Build API: 2026-11-17 to 2026-11-20/}).waitFor();
  const home=await context.newPage();await home.goto(origin);await home.getByRole('button',{name:'＋ New chart',exact:true}).click();await home.getByRole('dialog',{name:'Your Chart is ready'}).waitFor();
  const newEdit=await home.locator('#copy-edit').inputValue(),newView=await home.locator('#copy-view').inputValue();assert.notEqual(newEdit,newView);
  await home.getByRole('link',{name:'Open Chart',exact:true}).click();await home.getByRole('grid',{name:'Chart'}).waitFor();assert.equal(await home.locator('.gantt-row').count(),0);
