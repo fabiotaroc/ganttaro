@@ -9,4 +9,8 @@
    Verified: Convex dev --once, Next.js production build, ESLint, Vitest runner
    with no tests yet, and git diff --check.
 
-Steps 2–10 and the deployed acceptance scenario remain.
+2. Shared core complete: calendar, validation, Conflicts, cycle detection, IDs,
+   stable Tidy, shared layout, compact JSON, field changes and diffs.
+   Verified: 26 Vitest cases and strict TypeScript checking.
+
+Steps 3–10 and the deployed acceptance scenario remain.
