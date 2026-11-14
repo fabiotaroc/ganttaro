@@ -26,4 +26,12 @@
    and live development backend: create/read/update/stale refusal/retry/restore,
    client attribution and View Link write refusal. Build, lint and 34 tests pass.
 
-Steps 5–10 and the deployed acceptance scenario remain.
+5. Chart UI implemented at /c/[editKey] and /v/[viewKey], with live Convex
+   reads, UI SDK spans/reordering/connections/inline editing, real-date inputs,
+   Milestones, Groups, details, Holidays, zoom, Revisions, undo/redo and presence.
+   View Links expose details without editing controls.
+   Verified: production build, ESLint and 37 tests, including grid rendering,
+   keyboard movement over Holidays, source tagging and View Link restrictions.
+   Browser interaction verification remains part of the deployed scenario.
+
+Steps 6–10 and the deployed acceptance scenario remain.
