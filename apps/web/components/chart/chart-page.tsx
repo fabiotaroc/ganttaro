@@ -1,6 +1,6 @@
 'use client';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useMutation, useQuery } from 'convex/react';
 import usePresence from '@convex-dev/presence/react';
 import { Gantt, type EditDetails } from '@ganttaro/chart';
@@ -13,6 +13,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
+import { recordRecent } from '@/lib/recent';
 import { Details, type EventEdit } from './details';
 export function ChartPage({ chartKey, readOnly }: { chartKey: string; readOnly: boolean }) {
   const data = useQuery(api.charts.get, { key: chartKey, full: true });
@@ -21,6 +22,8 @@ export function ChartPage({ chartKey, readOnly }: { chartKey: string; readOnly: 
 }
 function LoadedChart({ initial, chartKey, readOnly }: { initial: CompactChart; chartKey: string; readOnly: boolean }) {
   const chart = fromCompact(initial);
+  const opened = useRef<number | null>(null);
+  useEffect(() => { opened.current ??= Date.now(); recordRecent({ key: chartKey, title: chart.title, access: readOnly ? 'View' : 'Edit', opened: opened.current }); }, [chartKey,chart.title,readOnly]);
   const [zoom, setZoom] = useState<Zoom>(chart.zoom);
   const [selected, setSelected] = useState<string | null>(null);
   const [dialog, setDialog] = useState<'create'|'settings'|'history'|null>(null);

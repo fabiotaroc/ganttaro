@@ -202,3 +202,14 @@ button:disabled { cursor: default; }
 .gantt-hover > * { display: block; margin: 5px 0; white-space: pre-wrap; overflow-wrap: anywhere; }
 .gantt-hover button { color: #354ca8; text-align: left; padding-top: 5px; }
 .gantt-bar:hover .gantt-hover,.gantt-bar:focus-within .gantt-hover { display: block; }
+.home-page { max-width: 1040px; margin: 0 auto; padding: 0 36px 70px; }
+.home-page .chart-topbar { justify-content: space-between; }
+.home-hero { padding: 90px 0 70px; max-width: 700px; }
+.home-hero h1 { font-size: clamp(40px,6vw,70px); line-height: 1.05; letter-spacing: -3px; font-weight: 650; margin: 16px 0 24px; }
+.home-hero h1 span { color: #687b96; }
+.home-hero > p:not(.eyebrow) { max-width: 470px; font-size: 16px; line-height: 1.7; color: #66748a; margin-bottom: 28px; }
+.home-recent h2 { font-size: 18px; font-weight: 600; letter-spacing: -.4px; }
+.home-recent ul { border-top: 1px solid #dce2eb; margin-top: 16px; }
+.home-recent li { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 20px 0; border-bottom: 1px solid #e1e6ee; }
+.home-recent li a { flex: 1; }.home-recent strong { display: block; font-size: 14px; font-weight: 550; }.home-recent li span { display: block; font-size: 11px; color: #7b889a; margin-top: 5px; }
+.home-empty { margin-top: 18px; border: 1px dashed #cfd7e3; padding: 40px; border-radius: 12px; color: #66748a; text-align: center; }.home-empty > span { font-size: 24px; color: #5368d9; }.home-empty p { font-size: 14px; margin: 10px 0 4px; }.home-empty small { font-size: 11px; }

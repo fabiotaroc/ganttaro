@@ -34,4 +34,9 @@
    keyboard movement over Holidays, source tagging and View Link restrictions.
    Browser interaction verification remains part of the deployed scenario.
 
-Steps 6–10 and the deployed acceptance scenario remain.
+6. Home page complete: New chart creates an empty hosted Chart and prompts to
+   copy both secret links. Recent charts records title, opening time and access
+   in localStorage; removing an entry only changes that browser list.
+   Verified: production build, ESLint and 37 tests.
+
+Steps 7–10 and the deployed acceptance scenario remain.
