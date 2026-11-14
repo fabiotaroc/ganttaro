@@ -1,0 +1,26 @@
+{
+  "name": "ganttaro",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace apps/web",
+    "build": "npm run build --workspace apps/web",
+    "lint": "npm run lint --workspace apps/web",
+    "test": "vitest run",
+    "convex:dev": "convex dev"
+  },
+  "dependencies": {
+    "@ui-sdk/core": "0.1.0-beta.1",
+    "@ui-sdk/react": "0.1.0-beta.1",
+    "convex": "1.50.0"
+  },
+  "devDependencies": {
+    "convex-test": "0.0.71",
+    "typescript": "7.0.2",
+    "vitest": "4.1.12"
+  },
+  "type": "module"
+}
