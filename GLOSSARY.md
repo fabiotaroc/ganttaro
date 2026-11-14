@@ -75,11 +75,11 @@ An Agent Edit made through Ganttaro's MCP server, from any harness, without the 
 _Avoid_: API edit, remote edit
 
 **Agent Edit (Bridge)**:
-An Agent Edit made by an agent operating the open Chart in a browser through the Agent Bridge. It can only do what a person could do by hand in that Chart.
+An Agent Edit made by an agent operating the open Chart in a browser, through the Agent Bridge or by driving the page itself. It can only do what a person could do by hand in that Chart. Any change in an open Chart that a person did not make by hand counts as one, never as a Manual Edit.
 _Avoid_: Browser edit, WebMCP edit
 
 **Agent Bridge**:
-The part of an open Chart that lets an agent in the same browser read what is on screen and operate it directly, without screenshots.
+The part of an open Chart that lets an agent in the same browser read the whole Chart and act on it directly, without screenshots. It presents the Chart as a single control whose actions name Items.
 _Avoid_: WebMCP, site tools
 
 **Revision**:
