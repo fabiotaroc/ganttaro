@@ -19,4 +19,11 @@
    Verified: 34 tests total, Convex TypeScript, successful cloud deployment, and
    live development create/Agent Edit/View Link read.
 
-Steps 4–10 and the deployed acceptance scenario remain.
+4. Streamable HTTP MCP server complete at /mcp with all planned tools and
+   list_revisions for discovering restore targets. Handshake client names persist
+   across requests through expiring Convex MCP sessions.
+   Verified: scripts/test-mcp.mjs against the running Next.js production server
+   and live development backend: create/read/update/stale refusal/retry/restore,
+   client attribution and View Link write refusal. Build, lint and 34 tests pass.
+
+Steps 5–10 and the deployed acceptance scenario remain.

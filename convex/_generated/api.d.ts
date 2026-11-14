@@ -9,6 +9,7 @@
  */
 
 import type * as charts from "../charts.js";
+import type * as mcp from "../mcp.js";
 import type * as presence from "../presence.js";
 
 import type {
@@ -19,6 +20,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   charts: typeof charts;
+  mcp: typeof mcp;
   presence: typeof presence;
 }>;
 
