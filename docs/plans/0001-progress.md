@@ -46,4 +46,13 @@
    Verified: 40 tests, every advertised action, cutoff, refusal/confirmation,
    source tags and a keyboard-interaction mutation check. Build and lint pass.
 
-Steps 8–10 and the deployed acceptance scenario remain.
+8. Browser PNG/PDF export implemented from core layout using bundled IBM Plex
+   Sans and resvg WebAssembly; PDF embeds the same raster on a fixed landscape
+   page. Exports are absent from agent actions.
+   Verified: 42 tests, deterministic PNG bytes, PDF landscape dimensions, actual
+   Chrome downloads and visual inspection. Safari comparison is pending because
+   Safari currently refuses WebDriver until Allow remote automation is enabled.
+   Additional Chrome checks passed: hidden weekends, live View Link, Manual
+   rename, Bridge Dependency and distinct Revision kinds.
+
+Steps 9–10 and the deployed acceptance scenario remain.
