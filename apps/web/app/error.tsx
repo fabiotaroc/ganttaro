@@ -3,10 +3,17 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/wordmark';
 export default function ErrorPage({ reset }: { reset: () => void }) {
-  return <main className="mx-auto grid min-h-screen max-w-lg content-center gap-5 p-8">
-    <Logo size={28} />
-    <h1 className="text-3xl font-semibold">This Chart could not be opened</h1>
-    <p className="text-muted-foreground">Check the Edit Link or View Link and try again.</p>
-    <div className="flex gap-3"><Button onClick={reset}>Try again</Button><Button variant="outline" nativeButton={false} render={<Link href="/" />}>Recent Charts</Button></div>
-  </main>;
+  return (
+    <main className="mx-auto grid min-h-screen max-w-lg content-center gap-5 p-8">
+      <Logo size={28} />
+      <h1 className="text-3xl font-semibold">This Chart could not be opened</h1>
+      <p className="text-muted-foreground">Check the Edit Link or View Link and try again.</p>
+      <div className="flex gap-3">
+        <Button onClick={reset}>Try again</Button>
+        <Button variant="outline" nativeButton={false} render={<Link href="/" />}>
+          Recent Charts
+        </Button>
+      </div>
+    </main>
+  );
 }

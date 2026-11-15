@@ -4,7 +4,8 @@ import { createMcpServer, convexClient } from '@/lib/mcp';
 import { api } from '../../../../convex/_generated/api';
 export async function POST(request: Request) {
   const origin = new URL(request.url).origin;
-  if (request.headers.get('origin') && request.headers.get('origin') !== origin) return new Response('Origin refused', { status: 403 });
+  if (request.headers.get('origin') && request.headers.get('origin') !== origin)
+    return new Response('Origin refused', { status: 403 });
   const body = await request.json();
   const db = convexClient();
   let token = request.headers.get('mcp-session-id');
@@ -19,12 +20,23 @@ export async function POST(request: Request) {
     client = session.client;
   } else return new Response('Initialize an MCP session first', { status: 400 });
   const server = createMcpServer(db, origin, client);
-  const transport = new WebStandardStreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
+  const transport = new WebStandardStreamableHTTPServerTransport({
+    sessionIdGenerator: undefined,
+    enableJsonResponse: true,
+  });
   await server.connect(transport);
   const response = await transport.handleRequest(request, { parsedBody: body });
-  if (body.method === 'initialize' && response.ok && token) response.headers.set('mcp-session-id', token);
+  if (body.method === 'initialize' && response.ok && token)
+    response.headers.set('mcp-session-id', token);
   await server.close();
   return response;
 }
-export function GET() { return new Response('Use POST for MCP requests', { status: 405, headers: { Allow: 'POST, DELETE' } }); }
-export function DELETE() { return new Response(null, { status: 204 }); }
+export function GET() {
+  return new Response('Use POST for MCP requests', {
+    status: 405,
+    headers: { Allow: 'POST, DELETE' },
+  });
+}
+export function DELETE() {
+  return new Response(null, { status: 204 });
+}

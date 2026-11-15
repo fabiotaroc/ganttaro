@@ -7,14 +7,23 @@ export function layout(chart: Chart, options: { start: ISODate; end: ISODate; zo
   // Holidays retain visible weekday columns; Working Day duration excludes them.
   for (let n = dateNumber(options.start); n <= dateNumber(options.end); n++) {
     const date = addDays(options.start, n - dateNumber(options.start));
-    if (isWeekday(date)) columns.push({ date, holiday: chart.holidays.includes(date), x: columns.length * width });
+    if (isWeekday(date))
+      columns.push({ date, holiday: chart.holidays.includes(date), x: columns.length * width });
   }
   const origin = columns[0]?.date ?? options.start;
-  const index = (date: ISODate) => date >= origin ? workingDaysBetween(origin, date) - 1 : -workingDaysBetween(date, origin) + 1;
-  return { columns, columnWidth: width, width: columns.length * width, bars: chart.items.map((item, row) => ({
-    id: item.id, row, x: index(startOf(item)) * width,
-    width: (index(endOf(item)) - index(startOf(item)) + 1) * width,
-    milestone: item.on !== undefined,
-    duration: workingDaysBetween(startOf(item), endOf(item), chart.holidays),
-  })) };
+  const index = (date: ISODate) =>
+    date >= origin ? workingDaysBetween(origin, date) - 1 : -workingDaysBetween(date, origin) + 1;
+  return {
+    columns,
+    columnWidth: width,
+    width: columns.length * width,
+    bars: chart.items.map((item, row) => ({
+      id: item.id,
+      row,
+      x: index(startOf(item)) * width,
+      width: (index(endOf(item)) - index(startOf(item)) + 1) * width,
+      milestone: item.on !== undefined,
+      duration: workingDaysBetween(startOf(item), endOf(item), chart.holidays),
+    })),
+  };
 }
