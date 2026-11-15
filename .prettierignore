@@ -1,0 +1,11 @@
+node_modules
+.next
+dist
+.vercel
+package-lock.json
+convex/_generated
+apps/web/next-env.d.ts
+apps/web/public/export
+spikes
+.agents
+*.md

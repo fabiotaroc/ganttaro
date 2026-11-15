@@ -8,7 +8,8 @@
   "scripts": {
     "dev": "npm run dev --workspace apps/web",
     "build": "npm run build --workspace apps/web",
-    "lint": "npm run lint --workspace apps/web",
+    "lint": "prettier --check . && npm run lint --workspace apps/web",
+    "format": "prettier --write .",
     "test": "vitest run",
     "convex:dev": "convex dev",
     "build:vercel": "convex deploy --cmd-url-env-var-name NEXT_PUBLIC_CONVEX_URL --cmd 'npm run build'"
@@ -28,6 +29,7 @@
     "convex-test": "0.0.71",
     "jsdom": "29.1.1",
     "playwright": "1.65.1",
+    "prettier": "3.10.1",
     "typescript": "5.9.3",
     "vitest": "4.1.12"
   },
