@@ -6,8 +6,25 @@ import { gantt, viewGantt, type EditDetails } from './gantt';
 const editParts = createParts(gantt, { root: 'div', grid: 'div', row: 'div', label: 'div', input: 'input', track: 'div', bar: 'div', port: 'span' });
 const viewParts = createParts(viewGantt, { root: 'div', grid: 'div', row: 'div', label: 'div', input: 'input', track: 'div', bar: 'div', port: 'span' });
 export const rowHeight = 48;
-export function Gantt({ chart, start, end, readOnly, onEdit, onOpen, onError, onRestore, onHistory, onHoliday, onDisconnect }: {
-  chart: Chart; start: string; end: string; readOnly: boolean;
+type Column = { date: string; x: number };
+const day = (date: string) => new Date(`${date}T00:00:00Z`);
+const weekday = (date: string) => day(date).toLocaleDateString('en', { weekday: 'narrow', timeZone: 'UTC' });
+// Weekends are hidden, so a week starts on the first visible column after a gap of more than one day.
+function weekStart(columns: Column[], index: number) {
+  if (index === 0) return true;
+  return day(columns[index].date).getTime() - day(columns[index - 1].date).getTime() > 86_400_000;
+}
+function months(columns: Column[]) {
+  const result: { key: string; label: string; x: number; columns: number }[] = [];
+  for (const column of columns) {
+    const key = column.date.slice(0, 7), last = result.at(-1);
+    if (last?.key === key) last.columns++;
+    else result.push({ key, x: column.x, columns: 1, label: day(column.date).toLocaleDateString('en', { month: 'long', year: 'numeric', timeZone: 'UTC' }) });
+  }
+  return result;
+}
+export function Gantt({ chart, start, end, readOnly, empty, onEdit, onOpen, onError, onRestore, onHistory, onHoliday, onDisconnect }: {
+  chart: Chart; start: string; end: string; readOnly: boolean; empty?: React.ReactNode;
   onEdit: (changes: Change[], details: EditDetails) => Promise<unknown>;
   onOpen: (id: string) => void; onError: (message: string) => void;
   onRestore: (id: string) => Promise<unknown>; onHistory: () => unknown;
@@ -30,13 +47,17 @@ export function Gantt({ chart, start, end, readOnly, onEdit, onOpen, onError, on
       return <div className="gantt-scroll">
         <div className="gantt-calendar" style={{ width: geometry.width + 256 }}>
           <div className="gantt-heading">Items <span>{chart.items.length}</span></div>
-          <div className="gantt-days" style={{ width: geometry.width }}>
-            {geometry.columns.map(column => <button key={column.date} type="button" disabled={readOnly} aria-label={`${column.date}${column.holiday ? ', Holiday' : ''}`} title={readOnly ? column.date : `Toggle Holiday ${column.date}`} data-holiday={column.holiday || undefined} data-today={column.date === today || undefined} onClick={event => onHoliday(column.date, event)} style={{ left: column.x, width: geometry.columnWidth }}>{column.date.slice(8)}<small>{column.date.slice(5,7)}</small></button>)}
+          <div className="gantt-days" data-zoom={chart.zoom} style={{ width: geometry.width }}>
+            <div className="gantt-months" aria-hidden="true">{months(geometry.columns).map(month => <span key={month.key} style={{ left: month.x, width: month.columns * geometry.columnWidth }}>{month.label}</span>)}</div>
+            {geometry.columns.map((column, index) => {
+              const label = chart.zoom === 'days' || weekStart(geometry.columns, index);
+              return <button key={column.date} type="button" disabled={readOnly} aria-label={`${column.date}${column.holiday ? ', Holiday' : ''}`} title={readOnly ? column.date : `Toggle Holiday ${column.date}`} data-holiday={column.holiday || undefined} data-today={column.date === today || undefined} data-week={weekStart(geometry.columns, index) || undefined} onClick={event => onHoliday(column.date, event)} style={{ left: column.x, width: geometry.columnWidth }}>{label && <span aria-hidden="true">{chart.zoom === 'days' && <small>{weekday(column.date)}</small>}{Number(column.date.slice(8))}</span>}</button>;
+            })}
           </div>
         </div>
         <parts.Grid className="gantt-grid" style={{ width: geometry.width + 256, minHeight: Math.max(144, chart.items.length * rowHeight) }}>
-          <div className="gantt-columns" aria-hidden="true" style={{ left: 256 }}>
-            {geometry.columns.map(column => <div key={column.date} data-holiday={column.holiday || undefined} data-today={column.date === todayBoundary || undefined} title={column.date === todayBoundary ? `Today: ${today}` : undefined} style={{ left: column.x, width: geometry.columnWidth }} />)}
+          <div className="gantt-columns" data-zoom={chart.zoom} aria-hidden="true" style={{ left: 256 }}>
+            {geometry.columns.map((column, index) => <div key={column.date} data-holiday={column.holiday || undefined} data-today={column.date === todayBoundary || undefined} data-week={weekStart(geometry.columns, index) || undefined} data-month={index > 0 && column.date.slice(0,7) !== geometry.columns[index-1].date.slice(0,7) || undefined} title={column.date === todayBoundary ? `Today: ${today}` : undefined} style={{ left: column.x, width: geometry.columnWidth }} />)}
           </div>
           {state.order.map((id, row) => {
             const item = byId.get(id), span = spanById.get(id); if (!item || !span) return null;
@@ -59,11 +80,11 @@ export function Gantt({ chart, start, end, readOnly, onEdit, onOpen, onError, on
               const x1 = a.end * geometry.columnWidth, y1 = state.order.indexOf(after) * rowHeight + rowHeight / 2;
               const x2 = b.start * geometry.columnWidth, y2 = state.order.indexOf(item.id) * rowHeight + rowHeight / 2;
               const mid = Math.max(x1 + 12, x2 - 12);
-              return <path key={`${after}:${item.id}`} d={`M${x1},${y1} H${mid} V${y2} H${x2}`} markerEnd="url(#gantt-arrow)" className={bad.has(item.id) ? 'conflict' : ''} tabIndex={readOnly ? undefined : 0} aria-label={`${item.name} comes after ${byId.get(after)?.name}. Delete removes this Dependency.`} onClick={event => event.currentTarget.focus()} onKeyDown={event => { if (!readOnly && event.key === 'Delete') { event.preventDefault(); onDisconnect(item.id, after, event); } }} />;
+              return <path key={`${after}:${item.id}`} d={`M${x1},${y1} H${mid} V${y2} H${x2}`} markerEnd="url(#gantt-arrow)" className={bad.has(item.id) ? 'conflict' : ''} tabIndex={readOnly ? undefined : 0} aria-label={`${item.name} comes after ${byId.get(after)?.name}. Delete removes this Dependency.`} onClick={event => event.currentTarget.focus()} onKeyDown={event => { if (!readOnly && (event.key === 'Delete' || event.key === 'Backspace')) { event.preventDefault(); onDisconnect(item.id, after, event); } }} />;
             }))}
             {state.connecting && !state.connecting.to && <line x1={(spanById.get(state.connecting.from.split(':')[0])?.end ?? 0) * geometry.columnWidth} y1={state.order.indexOf(state.connecting.from.split(':')[0]) * rowHeight + rowHeight/2} x2={state.connecting.x - 256} y2={state.connecting.y} />}
           </svg>
-          {!chart.items.length && <p className="gantt-empty">This Chart is ready for its first Item.</p>}
+          {!chart.items.length && <div className="gantt-empty">{empty ?? <p>This Chart has no Items yet.</p>}</div>}
         </parts.Grid>
       </div>;
     }}

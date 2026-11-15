@@ -3,6 +3,8 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { DataProvider } from "@/components/convex-provider";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { Loading } from "@/components/wordmark";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -25,7 +27,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col"><Suspense fallback={<main className="p-12">Opening Ganttaro…</main>}><DataProvider>{children}</DataProvider></Suspense></body>
+      <body className="min-h-full flex flex-col"><Suspense fallback={<Loading label="Opening Ganttaro…" />}><DataProvider><TooltipProvider delay={300}>{children}</TooltipProvider></DataProvider></Suspense></body>
     </html>
   );
 }

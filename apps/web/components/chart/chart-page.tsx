@@ -1,10 +1,10 @@
 'use client';
-import Link from 'next/link';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactElement } from 'react';
+import { CalendarCheckIcon, CircleAlertIcon, DownloadIcon, EyeIcon, HistoryIcon, ListOrderedIcon, PlusIcon, Redo2Icon, Settings2Icon, Undo2Icon, XIcon } from 'lucide-react';
 import { useMutation, useQuery } from 'convex/react';
 import usePresence from '@convex-dev/presence/react';
 import { Gantt, type EditDetails } from '@ganttaro/chart';
-import { addDays, applyChanges, compact, endOf, fromCompact, generateId, nextWorkingDay, palette, startOf, type Change, type Chart, type CompactChart, type Group, type Zoom } from '@ganttaro/core';
+import { addDays, applyChanges, columnWidth, compact, endOf, fromCompact, generateId, nextWorkingDay, palette, startOf, type Change, type Chart, type CompactChart, type Group, type Zoom } from '@ganttaro/core';
 import { api } from '../../../../convex/_generated/api';
 import type { Id } from '../../../../convex/_generated/dataModel';
 import { Button } from '@/components/ui/button';
@@ -13,13 +13,21 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { CopyButton } from '@/components/copy-button';
+import { Loading, Wordmark } from '@/components/wordmark';
 import { recordRecent } from '@/lib/recent';
+import { Share } from './share';
+import { Shortcuts } from './shortcuts';
+import { Revisions } from './revisions';
 import { ensureBridgeApproval } from './approval';
 import { AgentBridge } from './agent-bridge';
 import { Details, type EventEdit } from './details';
 export function ChartPage({ chartKey, readOnly }: { chartKey: string; readOnly: boolean }) {
   const data = useQuery(api.charts.get, { key: chartKey, full: true });
-  if (!data) return <main className="p-12 text-muted-foreground">Opening Chart…</main>;
+  if (!data) return <Loading label="Opening Chart…" />;
   return <LoadedChart initial={data} chartKey={chartKey} readOnly={readOnly} />;
 }
 function LoadedChart({ initial, chartKey, readOnly }: { initial: CompactChart; chartKey: string; readOnly: boolean }) {
@@ -68,21 +76,93 @@ function LoadedChart({ initial, chartKey, readOnly }: { initial: CompactChart; c
   useEffect(() => { const id = location.hash.replace('#item-', ''); if (id) document.getElementById(`item-${id}`)?.scrollIntoView({ block: 'center', inline: 'center' }); }, []);
   const first = chart.items.map(startOf).sort()[0] ?? new Date().toISOString().slice(0,10);
   const last = chart.items.map(endOf).sort().at(-1) ?? addDays(first, 30);
-  const start = addDays(first, -7), end = addDays(last, 21);
+  const [frame, setFrame] = useState(0);
+  const frameRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = frameRef.current; if (!el) return;
+    const observer = new ResizeObserver(([entry]) => setFrame(entry.contentRect.width));
+    observer.observe(el); return () => observer.disconnect();
+  }, []);
+  // Extend the timeline so it always fills the frame, whatever the zoom.
+  const start = addDays(first, -7);
+  const filled = addDays(start, Math.ceil(Math.max(0, frame - 256) / columnWidth[zoom] * 7 / 5) + 7);
+  const end = [addDays(last, 21), filled].sort().at(-1)!;
   const item = chart.items.find(item => item.id === selected);
+  const online = presence?.filter(person => person.online) ?? [];
+  const chartUrl = location.href.split('#')[0];
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  function undoLast(bridge: boolean) {
+    const id = undo.at(-1); if (!id) return;
+    void restore(id, true, bridge).then(() => { setUndo(value => value.slice(0,-1)); setRedo(value => [...value,id]); }).catch(error => report(error.message));
+  }
+  function redoLast(bridge: boolean) {
+    const id = redo.at(-1); if (!id) return;
+    void restore(id, false, bridge).then(() => { setRedo(value => value.slice(0,-1)); setUndo(value => [...value,id]); }).catch(error => report(error.message));
+  }
+  function scrollToToday() {
+    const scroller = document.querySelector<HTMLElement>('.gantt-scroll'), line = document.querySelector<HTMLElement>('.gantt-columns > [data-today]');
+    if (scroller && line) scroller.scrollTo({ left: Math.max(0, line.offsetLeft - 120), behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+  }
+  const keys = useRef({ undoLast, redoLast, scrollToToday });
+  useEffect(() => { keys.current = { undoLast, redoLast, scrollToToday }; });
+  useEffect(() => {
+    function onKey(event: KeyboardEvent) {
+      const target = event.target as HTMLElement;
+      if (target.closest('input, textarea, select, [contenteditable], [role=dialog]') || event.defaultPrevented) return;
+      const mod = event.metaKey || event.ctrlKey;
+      if (mod && event.key.toLowerCase() === 'z' && !readOnly) { event.preventDefault(); if (event.shiftKey) keys.current.redoLast(false); else keys.current.undoLast(false); return; }
+      if (mod || event.altKey) return;
+      if (event.key === '?') { event.preventDefault(); setShortcutsOpen(open => !open); }
+      else if (target.closest('.gantt')) return;
+      else if (event.key.toLowerCase() === 'n' && !readOnly) { event.preventDefault(); setDialog('create'); }
+      else if (event.key.toLowerCase() === 't') { event.preventDefault(); keys.current.scrollToToday(); }
+    }
+    addEventListener('keydown', onKey); return () => removeEventListener('keydown', onKey);
+  }, [readOnly]);
+  useEffect(() => { if (!message) return; const timer = setTimeout(() => setMessage(''), 8000); return () => clearTimeout(timer); }, [message]);
   return <main className="chart-page"><AgentBridge />
-    <header className="chart-topbar"><Link className="wordmark" href="/">ganttaro<span>↗</span></Link><span className="chart-access">{readOnly ? 'View Link' : 'Edit Link'}</span><div className="presence">{presence?.filter(person => person.online).map(person => <span key={person.userId} title={person.userId}>{person.userId}</span>)}</div></header>
-    <section className="chart-intro"><div><p className="eyebrow">Shared Chart</p><h1>{chart.title || 'Untitled Chart'}</h1>{chart.description && <p className="chart-description">{chart.description}</p>}</div><div className="chart-actions">{!readOnly && <><Button variant="outline" onClick={() => setDialog('settings')}>Chart settings</Button><Button onClick={() => setDialog('create')}>＋ New Item</Button></>}</div></section>
-    <section className="chart-toolbar"><div className="zoom-control" aria-label="Zoom">{(['days','weeks','months'] as const).map(value => <Button key={value} variant={zoom === value ? 'secondary' : 'ghost'} size="sm" onClick={() => setZoom(value)}>{value[0].toUpperCase()+value.slice(1)}</Button>)}</div><div className="chart-actions">{!readOnly && <><Button variant="ghost" size="sm" onClick={event => void edit([{ type: 'chart', fields: { zoom } }], event)}>Set as default zoom</Button><Button variant="outline" size="sm" onClick={event => void edit([{ type: 'tidy' }], event)}>Tidy</Button><Button variant="ghost" size="sm" disabled={!undo.length} onClick={event => { const id = undo.at(-1)!; void restore(id, true, !event.nativeEvent.isTrusted).then(() => { setUndo(value => value.slice(0,-1)); setRedo(value => [...value,id]); }).catch(error => report(error.message)); }}>Undo</Button><Button variant="ghost" size="sm" disabled={!redo.length} onClick={event => { const id = redo.at(-1)!; void restore(id, false, !event.nativeEvent.isTrusted).then(() => { setRedo(value => value.slice(0,-1)); setUndo(value => [...value,id]); }).catch(error => report(error.message)); }}>Redo</Button></>}<Button variant="ghost" size="sm" onClick={() => setDialog('history')}>Revisions</Button>{(['pdf','png'] as const).map(format => <Button key={format} variant="outline" size="sm" disabled={exporting} onClick={() => { setExporting(true);void import('@/lib/export').then(module => module.exportChart(chart,format)).catch(error => report(error.message)).finally(()=>setExporting(false)); }}>{format.toUpperCase()}</Button>)}</div></section>
-    {message && <div className="chart-message" role="alert">{message}<Button variant="ghost" size="sm" onClick={() => setMessage('')}>Dismiss</Button></div>}
-    <Gantt chart={{ ...chart, zoom }} start={start} end={end} readOnly={readOnly} onEdit={write} onOpen={setSelected} onError={report} onRestore={id => restore(id,false,true)} onHistory={() => history ?? []} onHoliday={(date,event) => { void edit([{ type:'holidays',dates: chart.holidays.includes(date) ? chart.holidays.filter(value => value !== date) : [...chart.holidays,date] }],event); }} onDisconnect={(id,after,event) => { const item = chart.items.find(value => value.id === id)!; void edit([{ type:'update',id,version:item.version,fields:{after:item.after?.filter(value => value !== after)} }],event); }} />
-    <footer className="chart-footer"><span>{chart.items.length} Items · {chart.groups.length} Groups · {initial.conflicts.length} Conflicts</span><span>Weekends hidden · Dates never move automatically</span></footer>
-    <p className="chart-keyboard">Arrow keys navigate. Enter opens details. F2 renames. Alt+arrows moves dates; add Shift to resize. Space on a name reorders. C draws a Dependency. Delete removes.</p>
+    <header className="chart-topbar"><Wordmark /><div className="ml-auto flex items-center gap-3"><Presence people={online.map(person => person.userId)} me={person} />{readOnly ? <><Badge variant="secondary"><EyeIcon />View only</Badge><CopyButton value={chartUrl} label="Copy link" /></> : <Share chartKey={chartKey} />}</div></header>
+    <section className="chart-intro"><div className="min-w-0 flex-1"><ChartTitle title={chart.title} readOnly={readOnly} onSave={(title, event) => void edit([{ type: 'chart', fields: { title } }], event)} />{chart.description && <p className="chart-description">{chart.description}</p>}</div>{!readOnly && <div className="chart-actions"><Button variant="outline" className="pl-2" onClick={() => setDialog('settings')}><Settings2Icon />Settings</Button><Button className="pl-2" onClick={() => setDialog('create')}><PlusIcon />New Item</Button></div>}</section>
+    <section className="chart-toolbar">
+      <div className="flex items-center gap-2"><div className="zoom-control" role="group" aria-label="Zoom">{(['days','weeks','months'] as const).map(value => <button key={value} type="button" aria-pressed={zoom === value} onClick={() => setZoom(value)}>{value[0].toUpperCase()+value.slice(1)}</button>)}</div><Hint label="Scroll to today (T)"><Button variant="ghost" size="sm" className="pl-1.5" onClick={scrollToToday}><CalendarCheckIcon />Today</Button></Hint>{!readOnly && zoom !== chart.zoom && <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={event => void edit([{ type: 'chart', fields: { zoom } }], event)}>Make {zoom} the default</Button>}</div>
+      <div className="chart-actions">
+        {!readOnly && <><div className="flex items-center"><Hint label={`Undo (${mac ? '⌘' : 'Ctrl+'}Z)`}><Button variant="ghost" size="icon-sm" aria-label="Undo" disabled={!undo.length} onClick={event => undoLast(!event.nativeEvent.isTrusted)}><Undo2Icon /></Button></Hint><Hint label={`Redo (${mac ? '⌘⇧' : 'Ctrl+Shift+'}Z)`}><Button variant="ghost" size="icon-sm" aria-label="Redo" disabled={!redo.length} onClick={event => redoLast(!event.nativeEvent.isTrusted)}><Redo2Icon /></Button></Hint></div><span className="toolbar-divider" aria-hidden="true" /><Hint label="Reorder Items by start date"><Button variant="ghost" size="sm" className="pl-1.5" onClick={event => void edit([{ type: 'tidy' }], event)}><ListOrderedIcon />Tidy</Button></Hint></>}
+        <Button variant="ghost" size="sm" className="pl-1.5" aria-pressed={dialog === 'history'} onClick={() => setDialog(dialog === 'history' ? null : 'history')}><HistoryIcon />Revisions</Button>
+        <DropdownMenu><DropdownMenuTrigger render={<Button variant="ghost" size="sm" className="pl-1.5" disabled={exporting} />}><DownloadIcon />{exporting ? 'Exporting…' : 'Export'}</DropdownMenuTrigger><DropdownMenuContent align="end" className="w-36">{(['pdf','png'] as const).map(format => <DropdownMenuItem key={format} onClick={() => { setExporting(true);void import('@/lib/export').then(module => module.exportChart(chart,format)).catch(error => report(error.message)).finally(()=>setExporting(false)); }}>{format.toUpperCase()}</DropdownMenuItem>)}</DropdownMenuContent></DropdownMenu>
+        <span className="toolbar-divider" aria-hidden="true" />
+        <Shortcuts open={shortcutsOpen} onOpenChange={setShortcutsOpen} readOnly={readOnly} />
+      </div>
+    </section>
+    <div ref={frameRef}><Gantt chart={{ ...chart, zoom }} start={start} end={end} readOnly={readOnly} empty={readOnly ? <p>This Chart has no Items yet.</p> : <div className="grid justify-items-start gap-3"><div><p className="font-medium text-foreground">No Items yet</p><p>Add a Task or a Milestone to start the timeline.</p></div><Button size="sm" className="pl-2" onClick={() => setDialog('create')}><PlusIcon />New Item</Button></div>} onEdit={write} onOpen={setSelected} onError={report} onRestore={id => restore(id,false,true)} onHistory={() => history ?? []} onHoliday={(date,event) => { void edit([{ type:'holidays',dates: chart.holidays.includes(date) ? chart.holidays.filter(value => value !== date) : [...chart.holidays,date] }],event); }} onDisconnect={(id,after,event) => { const item = chart.items.find(value => value.id === id)!; void edit([{ type:'update',id,version:item.version,fields:{after:item.after?.filter(value => value !== after)} }],event); }} /></div>
+    <footer className="chart-footer"><span className="tabular-nums">{count(chart.items.length, 'Item')} · {count(chart.groups.length, 'Group')} · <span data-conflicts={initial.conflicts.length > 0 || undefined}>{count(initial.conflicts.length, 'Conflict')}</span></span></footer>
+    {message && <div className="chart-toast" role="alert"><CircleAlertIcon className="mt-0.5 size-4 shrink-0" /><span className="flex-1 text-pretty">{message}</span><Button variant="ghost" size="icon-xs" aria-label="Dismiss" onClick={() => setMessage('')}><XIcon /></Button></div>}
     {item && <Details key={item.id} chart={chart} item={item} readOnly={readOnly} onClose={() => setSelected(null)} edit={edit} />}
     <Dialog open={dialog === 'create'} onOpenChange={open => { if (!open) setDialog(null); }}><DialogContent><DialogTitle>New Item</DialogTitle><DialogDescription>Add a Task or Milestone to this Chart.</DialogDescription><NewItem chart={chart} edit={edit} close={() => setDialog(null)} /></DialogContent></Dialog>
     <Dialog open={dialog === 'settings'} onOpenChange={open => { if (!open) setDialog(null); }}><DialogContent className="max-h-[90vh] overflow-auto"><DialogTitle>Chart settings</DialogTitle><DialogDescription>Title, description, Holidays and Groups.</DialogDescription><Settings chart={chart} edit={edit} close={() => setDialog(null)} /></DialogContent></Dialog>
-    <Dialog open={dialog === 'history'} onOpenChange={open => { if (!open) setDialog(null); }}><DialogContent className="max-h-[85vh] overflow-auto"><DialogTitle>Revisions</DialogTitle><DialogDescription>Every accepted change is recorded here.</DialogDescription><ol className="grid gap-3">{history?.map(revision => <li key={revision.id} className="flex items-center justify-between gap-4 rounded-lg border p-3"><div><strong className="text-sm">{revision.kind}</strong>{revision.client && <p className="text-xs text-muted-foreground">{revision.client}</p>}<p className="text-xs text-muted-foreground">{new Date(revision.timestamp).toLocaleString()} · {revision.diffs.length} fields changed</p></div>{!readOnly && <Button variant="outline" size="sm" onClick={event => { void restore(revision.id, false, !event.nativeEvent.isTrusted).then(result => { setUndo(value => [...value,result.revisionId]); setRedo([]); setDialog(null); }).catch(error => report(error.message)); }}>Restore</Button>}</li>)}</ol></DialogContent></Dialog>
+    <Revisions open={dialog === 'history'} onOpenChange={open => setDialog(open ? 'history' : null)} history={history} chart={chart} readOnly={readOnly} onRestore={(id, event) => { void restore(id, false, !event.nativeEvent.isTrusted).then(result => { setUndo(value => [...value,result.revisionId]); setRedo([]); }).catch(error => report(error.message)); }} />
   </main>;
+}
+const mac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform);
+function ChartTitle({ title, readOnly, onSave }: { title: string; readOnly: boolean; onSave: (title: string, event: { nativeEvent: Event }) => void }) {
+  const [editing, setEditing] = useState(false);
+  const done = useRef(false);
+  if (readOnly) return <h1>{title || 'Untitled Chart'}</h1>;
+  if (!editing) return <h1><button type="button" className="chart-title" title="Rename Chart" onClick={() => { done.current = false; setEditing(true); }}>{title || 'Untitled Chart'}</button></h1>;
+  const finish = (event: { currentTarget: HTMLInputElement; nativeEvent: Event }, save: boolean) => { if (done.current) return; done.current = true; const value = event.currentTarget.value.trim(); setEditing(false); if (save && value && value !== title) onSave(value, event); };
+  return <h1><input className="chart-title" aria-label="Chart title" defaultValue={title} autoFocus onFocus={event => event.currentTarget.select()} onBlur={event => finish(event, true)} onKeyDown={event => { if (event.key === 'Enter') finish(event, true); if (event.key === 'Escape') finish(event, false); }} /></h1>;
+}
+function count(value: number, noun: string) { return `${value} ${noun}${value === 1 ? '' : 's'}`; }
+function Hint({ label, children }: { label: string; children: ReactElement }) {
+  return <Tooltip><TooltipTrigger render={children} /><TooltipContent>{label}</TooltipContent></Tooltip>;
+}
+const tints = ['#5368d9','#2f8f7d','#c06a2b','#a2457a','#6b55b8','#3b7bbf'];
+function Presence({ people, me }: { people: string[]; me: string }) {
+  if (!people.length) return null;
+  const shown = people.slice(0, 4);
+  return <div className="presence" aria-label={`${people.length} here now`}>{shown.map(id => {
+    const tint = tints[[...id].reduce((sum, char) => sum + char.charCodeAt(0), 0) % tints.length];
+    return <Hint key={id} label={id === me ? `${id} (you)` : id}><span className="presence-avatar" style={{ background: tint }}>{id.replace('Person ', '').slice(0, 2).toUpperCase()}</span></Hint>;
+  })}{people.length > shown.length && <span className="presence-avatar presence-more">+{people.length - shown.length}</span>}</div>;
 }
 function NewItem({ chart, edit, close }: { chart: Chart; edit: EventEdit; close: () => void }) {
   const [milestone, setMilestone] = useState(false);

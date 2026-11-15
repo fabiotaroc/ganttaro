@@ -19,6 +19,11 @@ describe('the single Chart mutation path', () => {
     expect(JSON.stringify(await t.query(api.charts.get, { key: view }))).not.toContain(key);
     expect(JSON.stringify(await t.query(api.charts.history, { key: view }))).not.toContain(key);
   });
+  it('gives the View Link only to Edit Link holders', async () => {
+    const t = setup(); await create(t);
+    expect(await t.query(api.charts.viewKey, { key })).toBe(view);
+    await expect(t.query(api.charts.viewKey, { key: view })).rejects.toThrow('Edit Link');
+  });
   it('keeps independent field edits and accepts stale Manual Edits', async () => {
     const t = setup(); await create(t);
     await Promise.all([

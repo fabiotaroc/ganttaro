@@ -1,0 +1,3 @@
+# Codex loads this only after you mark the project as trusted.
+[mcp_servers.ganttaro-local]
+url = "http://localhost:3000/mcp"

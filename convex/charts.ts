@@ -19,6 +19,7 @@ export async function load(ctx: QueryCtx | MutationCtx, record: Doc<'charts'>): 
   return { id: record._id, title: record.title, ...(record.description ? { description: record.description } : {}), version: record.version, zoom: record.defaultZoom, holidays: record.holidays, items: record.order.map(id => byId.get(id)!), groups: groups.map(group => group.value as Group) };
 }
 export const get = query({ args: { key: v.string(), full: v.optional(v.boolean()) }, handler: async (ctx, args) => compact(await load(ctx, await access(ctx, args.key)), args.full) });
+export const viewKey = query({ args: { key: v.string() }, handler: async (ctx, args) => (await access(ctx, args.key, true)).viewKey });
 export const getItems = query({ args: { key: v.string(), ids: v.array(v.string()) }, handler: async (ctx, args) => {
   const chart = await load(ctx, await access(ctx, args.key));
   return { items: chart.items.filter(item => args.ids.includes(item.id)), conflicts: compact(chart).conflicts, flags: compact(chart).flags };

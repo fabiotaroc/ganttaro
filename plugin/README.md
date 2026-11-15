@@ -66,7 +66,12 @@ See the [skills CLI](https://www.skills.sh/docs/cli).
 
 ## Local or preview endpoint
 
-Replace the endpoint in the chosen config with `http://localhost:3101/mcp` for
+This repository already configures a `ganttaro-local` server at `http://localhost:3000/mcp`
+for OpenCode (`opencode.json`), Claude Code (`.mcp.json`), Cursor (`.cursor/mcp.json`) and
+Codex (`.codex/config.toml`, loaded once the project is trusted). Start `npm run dev` and
+approve the server when the harness asks.
+
+For other ports, replace the endpoint in the chosen config with `http://localhost:3101/mcp` for
 local testing, or the deployed preview's `/mcp` endpoint. Vercel-protected
 previews also require that harness to have deployment access; the app itself
 still uses Chart links for access.

@@ -122,7 +122,7 @@ export function makeGantt(readOnly: boolean) {
             emit([versioned(id, original.on !== undefined ? { on: shift(original.on) } : { ...(event.shiftKey ? {} : { start: shift(startOf(original)) }), end: shift(endOf(original)) })], 'move-key', event); return;
           }
           if (!readOnly && col === 1 && event.key.toLowerCase() === 'c') { event.preventDefault(); connect.start(`${id}:out`); return; }
-          if (!readOnly && col === 1 && event.key === 'Delete') { event.preventDefault(); emit([{ type: 'delete', id, version: item(id).version }], 'remove-key', event); return; }
+          if (!readOnly && col === 1 && (event.key === 'Delete' || event.key === 'Backspace')) { event.preventDefault(); emit([{ type: 'delete', id, version: item(id).version }], 'remove-key', event); return; }
           if (event.key === 'Enter') { event.preventDefault(); context.options().onOpen(id); return; }
           grid.keydown(event);
         },
