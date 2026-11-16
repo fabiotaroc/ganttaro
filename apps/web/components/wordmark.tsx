@@ -2,11 +2,11 @@ import Link from 'next/link';
 export function Logo({ size = 20, className }: { size?: number; className?: string }) {
   return (
     <svg
-      className={className}
+      className={className ? `logo ${className}` : 'logo'}
       viewBox="0 0 20 20"
       width={size}
       height={size}
-      fill="#5368d9"
+      fill="currentColor"
       aria-hidden="true"
     >
       <rect x="2" y="3" width="9" height="3.5" rx="1.75" />

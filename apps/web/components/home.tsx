@@ -6,6 +6,7 @@ import { useMutation } from 'convex/react';
 import { PlusIcon } from 'lucide-react';
 import { api } from '../../../convex/_generated/api';
 import { Button } from '@/components/ui/button';
+import { ThemeSwitch } from '@/components/theme-switch';
 import { Wordmark } from '@/components/wordmark';
 import { markCreated } from '@/components/chart/share';
 import {
@@ -32,6 +33,7 @@ export function Home() {
     <main className="home-page">
       <header className="chart-topbar">
         <Wordmark />
+        <ThemeSwitch />
       </header>
       <section className="home-hero">
         <h1>

@@ -16,6 +16,7 @@ import {
 import { useMutation, useQuery } from 'convex/react';
 import usePresence from '@convex-dev/presence/react';
 import { Gantt, type EditDetails } from '@ganttaro/chart';
+import { ThemeSwitch } from '@/components/theme-switch';
 import {
   addDays,
   applyChanges,
@@ -276,6 +277,7 @@ function LoadedChart({
           ) : (
             <Share chartKey={chartKey} />
           )}
+          <ThemeSwitch />
         </div>
       </header>
       <section className="chart-intro">

@@ -2,6 +2,7 @@ import { Suspense } from 'react';
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
+import { AppPreferences } from '@/components/app-preferences';
 import { DataProvider } from '@/components/convex-provider';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { Loading } from '@/components/wordmark';
@@ -23,13 +24,20 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<'/'>) {
   return (
-    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
+    <html
+      lang="en"
+      data-color-scheme="system"
+      suppressHydrationWarning
+      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+    >
       <body className="min-h-full flex flex-col">
-        <Suspense fallback={<Loading label="Opening Ganttaro…" />}>
-          <DataProvider>
-            <TooltipProvider delay={300}>{children}</TooltipProvider>
-          </DataProvider>
-        </Suspense>
+        <AppPreferences>
+          <Suspense fallback={<Loading label="Opening Ganttaro…" />}>
+            <DataProvider>
+              <TooltipProvider delay={300}>{children}</TooltipProvider>
+            </DataProvider>
+          </Suspense>
+        </AppPreferences>
       </body>
     </html>
   );
