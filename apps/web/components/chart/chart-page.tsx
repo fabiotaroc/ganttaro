@@ -10,6 +10,7 @@ import {
   PlusIcon,
   Redo2Icon,
   Settings2Icon,
+  Trash2Icon,
   Undo2Icon,
   XIcon,
 } from 'lucide-react';
@@ -39,7 +40,6 @@ import type { Id } from '../../../../convex/_generated/dataModel';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import {
   Select,
@@ -64,7 +64,7 @@ import { Shortcuts } from './shortcuts';
 import { Revisions } from './revisions';
 import { ensureBridgeApproval } from './approval';
 import { AgentBridge } from './agent-bridge';
-import { Details, type EventEdit } from './details';
+import { Details, Field, footer, type EventEdit, type SaveEdit } from './details';
 export function ChartPage({ chartKey, readOnly }: { chartKey: string; readOnly: boolean }) {
   const data = useQuery(api.charts.get, { key: chartKey, full: true });
   if (!data) return <Loading label="Opening Chart…" />;
@@ -94,6 +94,7 @@ function LoadedChart({
   const [selected, setSelected] = useState<string | null>(null);
   const [dialog, setDialog] = useState<'create' | 'settings' | 'history' | null>(null);
   const [message, setMessage] = useState('');
+  const [deleted, setDeleted] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
   const [undo, setUndo] = useState<Id<'revisions'>[]>([]),
     [redo, setRedo] = useState<Id<'revisions'>[]>([]);
@@ -134,19 +135,25 @@ function LoadedChart({
     setUndo(value => [...value, result.revisionId]);
     setRedo([]);
     setMessage('');
+    setDeleted(null);
     return result;
   }
-  const edit: EventEdit = async (changes, event) => {
+  // Returns why the change was refused, so a form can show it in place.
+  const save: SaveEdit = async (changes, event) => {
     try {
       await write(changes, {
         source: event.nativeEvent.isTrusted ? 'pointer' : 'programmatic',
         reason: 'form',
       });
-      return true;
+      return null;
     } catch (error) {
-      report(error instanceof Error ? error.message : String(error));
-      return false;
+      return error instanceof Error ? error.message : String(error);
     }
+  };
+  const edit: EventEdit = async (changes, event) => {
+    const reason = await save(changes, event);
+    if (reason) report(reason);
+    return !reason;
   };
   async function restore(id: string, inverse = false, bridge = false) {
     if (readOnly) throw new Error('A View Link cannot edit');
@@ -161,6 +168,7 @@ function LoadedChart({
     });
     if (!result.ok) throw new Error(result.reasons.join('; '));
     setMessage('');
+    setDeleted(null);
     return result;
   }
   useEffect(() => {
@@ -510,14 +518,35 @@ function LoadedChart({
           </Button>
         </div>
       )}
-      {item && (
+      {deleted && !message && (
+        <DeletedToast
+          text={deleted}
+          onUndo={() => {
+            setDeleted(null);
+            undoLast(false);
+          }}
+          onDone={() => setDeleted(null)}
+        />
+      )}
+      {selected && (
         <Details
-          key={item.id}
+          key={selected}
           chart={chart}
           item={item}
+          revisions={history ?? []}
           readOnly={readOnly}
           onClose={() => setSelected(null)}
-          edit={edit}
+          save={save}
+          onDelete={async (target, event) => {
+            const reason = await save(
+              [{ type: 'delete', id: target.id, version: target.version }],
+              event,
+            );
+            if (reason) return reason;
+            setSelected(null);
+            setDeleted(`${target.on !== undefined ? 'Milestone' : 'Task'} deleted`);
+            return null;
+          }}
         />
       )}
       <Dialog
@@ -526,9 +555,8 @@ function LoadedChart({
           if (!open) setDialog(null);
         }}
       >
-        <DialogContent>
-          <DialogTitle>New Item</DialogTitle>
-          <DialogDescription>Add a Task or Milestone to this Chart.</DialogDescription>
+        <DialogContent className={panel}>
+          <PanelHeader title="New Item" description="Add a Task or Milestone to this Chart." />
           <NewItem chart={chart} edit={edit} close={() => setDialog(null)} />
         </DialogContent>
       </Dialog>
@@ -538,9 +566,11 @@ function LoadedChart({
           if (!open) setDialog(null);
         }}
       >
-        <DialogContent className="max-h-[90vh] overflow-auto sm:max-w-lg">
-          <DialogTitle>Chart settings</DialogTitle>
-          <DialogDescription>Title, description, Holidays and Groups.</DialogDescription>
+        <DialogContent className={`${panel} sm:max-w-lg`}>
+          <PanelHeader
+            title="Chart settings"
+            description="Title, description, Holidays and Groups."
+          />
           <Settings chart={chart} edit={edit} close={() => setDialog(null)} />
         </DialogContent>
       </Dialog>
@@ -679,12 +709,24 @@ function Presence({ people, me }: { people: string[]; me: string }) {
     </div>
   );
 }
+const panel = 'flex max-h-[90vh] flex-col gap-0 p-0 sm:max-w-md';
+const body = 'grid flex-1 content-start gap-5 overflow-y-auto px-6 py-6';
+function PanelHeader({ title, description }: { title: string; description: string }) {
+  return (
+    <header className="flex flex-col gap-1.5 border-b px-6 pt-6 pb-5 pr-12">
+      <DialogTitle className="text-xl font-semibold tracking-tight text-balance">
+        {title}
+      </DialogTitle>
+      <DialogDescription className="text-pretty">{description}</DialogDescription>
+    </header>
+  );
+}
 function NewItem({ chart, edit, close }: { chart: Chart; edit: EventEdit; close: () => void }) {
   const [milestone, setMilestone] = useState(false);
   const today = nextWorkingDay(new Date().toISOString().slice(0, 10), chart.holidays, true);
   return (
     <form
-      className="grid gap-4"
+      className="flex min-h-0 flex-1 flex-col"
       onSubmit={event => {
         event.preventDefault();
         const form = new FormData(event.currentTarget),
@@ -702,36 +744,45 @@ function NewItem({ chart, edit, close }: { chart: Chart; edit: EventEdit; close:
         });
       }}
     >
-      <div>
-        <Label htmlFor="new-name">Name</Label>
-        <Input id="new-name" name="name" autoFocus />
+      <div className={body}>
+        <Field label="Name" htmlFor="new-name">
+          <Input id="new-name" name="name" autoFocus />
+        </Field>
+        <Field label="Kind">
+          <Select
+            value={milestone ? 'Milestone' : 'Task'}
+            onValueChange={value => setMilestone(value === 'Milestone')}
+          >
+            <SelectTrigger aria-label="Item kind" className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Task">Task</SelectItem>
+              <SelectItem value="Milestone">Milestone</SelectItem>
+            </SelectContent>
+          </Select>
+        </Field>
+        {milestone ? (
+          <Field label="Date" htmlFor="new-start">
+            <Input id="new-start" name="start" type="date" defaultValue={today} required />
+          </Field>
+        ) : (
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Start" htmlFor="new-start">
+              <Input id="new-start" name="start" type="date" defaultValue={today} required />
+            </Field>
+            <Field label="End" htmlFor="new-end">
+              <Input id="new-end" name="end" type="date" defaultValue={today} required />
+            </Field>
+          </div>
+        )}
       </div>
-      <div>
-        <Label>Kind</Label>
-        <Select
-          value={milestone ? 'Milestone' : 'Task'}
-          onValueChange={value => setMilestone(value === 'Milestone')}
-        >
-          <SelectTrigger aria-label="Item kind">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="Task">Task</SelectItem>
-            <SelectItem value="Milestone">Milestone</SelectItem>
-          </SelectContent>
-        </Select>
+      <div className={`${footer} justify-end rounded-b-xl`}>
+        <Button type="submit">
+          <PlusIcon aria-hidden="true" />
+          Add Item
+        </Button>
       </div>
-      <div>
-        <Label htmlFor="new-start">{milestone ? 'Date' : 'Start'}</Label>
-        <Input id="new-start" name="start" type="date" defaultValue={today} required />
-      </div>
-      {!milestone && (
-        <div>
-          <Label htmlFor="new-end">End</Label>
-          <Input id="new-end" name="end" type="date" defaultValue={today} required />
-        </div>
-      )}
-      <Button type="submit">Add Item</Button>
     </form>
   );
 }
@@ -739,7 +790,7 @@ function Settings({ chart, edit, close }: { chart: Chart; edit: EventEdit; close
   const [groups, setGroups] = useState<Group[]>(chart.groups);
   return (
     <form
-      className="grid gap-4"
+      className="flex min-h-0 flex-1 flex-col"
       onSubmit={event => {
         event.preventDefault();
         const data = new FormData(event.currentTarget);
@@ -766,95 +817,165 @@ function Settings({ chart, edit, close }: { chart: Chart; edit: EventEdit; close
         });
       }}
     >
-      <div>
-        <Label htmlFor="chart-title">Title</Label>
-        <Input id="chart-title" name="title" defaultValue={chart.title} />
-      </div>
-      <div>
-        <Label htmlFor="chart-description">Description</Label>
-        <Textarea id="chart-description" name="description" defaultValue={chart.description} />
-      </div>
-      <div>
-        <Label htmlFor="chart-holidays">Holidays</Label>
-        <Textarea id="chart-holidays" name="holidays" defaultValue={chart.holidays.join('\n')} />
-        <p className="text-xs text-muted-foreground">
-          Weekday dates, one YYYY-MM-DD per line. Item dates stay as they are.
-        </p>
-      </div>
-      <Label>Groups</Label>
-      {groups.length > 0 && (
-        <div className="group-row text-xs text-muted-foreground" aria-hidden="true">
-          <span>Name</span>
-          <span>Colour</span>
-        </div>
-      )}
-      {groups.map((group, index) => (
-        <div className="group-row" key={group.id}>
-          <Input
-            aria-label={`Group name ${index + 1}`}
-            value={group.name}
-            onChange={event =>
-              setGroups(
-                groups.map(value =>
-                  value.id === group.id ? { ...value, name: event.target.value } : value,
-                ),
-              )
-            }
+      <div className={body}>
+        <Field label="Title" htmlFor="chart-title">
+          <Input id="chart-title" name="title" defaultValue={chart.title} />
+        </Field>
+        <Field label="Description" htmlFor="chart-description">
+          <Textarea id="chart-description" name="description" defaultValue={chart.description} />
+        </Field>
+        <Field
+          label="Holidays"
+          htmlFor="chart-holidays"
+          hint="Weekday dates, one YYYY-MM-DD per line. Item dates stay as they are."
+        >
+          <Textarea
+            id="chart-holidays"
+            name="holidays"
+            className="max-h-48 font-mono text-xs tabular-nums"
+            defaultValue={chart.holidays.join('\n')}
           />
-          <Select
-            value={group.color}
-            onValueChange={color => {
-              if (color)
-                setGroups(
-                  groups.map(value =>
-                    value.id === group.id ? { ...value, color: color as Group['color'] } : value,
-                  ),
-                );
-            }}
-          >
-            <SelectTrigger className="w-full" aria-label={`Group colour ${index + 1}`}>
-              <SelectValue>{(color: Group['color']) => <ColorName color={color} />}</SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              {palette.map(color => (
-                <SelectItem key={color} value={color}>
-                  <ColorName color={color} />
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            disabled={chart.items.some(item => item.group === group.id)}
-            aria-label={`Remove Group ${group.name}`}
-            onClick={() => setGroups(groups.filter(value => value.id !== group.id))}
-          >
-            Remove
-          </Button>
-        </div>
-      ))}
+        </Field>
+        <Field label="Groups" hint="A Group still used by an Item can't be removed.">
+          <div className="grid gap-2">
+            {groups.length > 0 && (
+              <div className="group-row text-xs text-muted-foreground" aria-hidden="true">
+                <span>Name</span>
+                <span>Colour</span>
+              </div>
+            )}
+            {groups.map((group, index) => (
+              <GroupRow
+                key={group.id}
+                group={group}
+                index={index}
+                used={chart.items.some(item => item.group === group.id)}
+                onChange={next =>
+                  setGroups(groups.map(value => (value.id === group.id ? next : value)))
+                }
+                onRemove={() => setGroups(groups.filter(value => value.id !== group.id))}
+              />
+            ))}
+            <Button
+              type="button"
+              variant="ghost"
+              className="justify-self-start pl-2 text-muted-foreground hover:text-foreground"
+              onClick={() =>
+                setGroups([
+                  ...groups,
+                  {
+                    id: generateId(
+                      'group',
+                      groups.map(value => value.id),
+                    ),
+                    name: 'New Group',
+                    color: palette[groups.length % palette.length],
+                  },
+                ])
+              }
+            >
+              <PlusIcon aria-hidden="true" />
+              Add Group
+            </Button>
+          </div>
+        </Field>
+      </div>
+      <div className={`${footer} justify-end rounded-b-xl`}>
+        <Button type="submit">Save settings</Button>
+      </div>
+    </form>
+  );
+}
+function GroupRow({
+  group,
+  index,
+  used,
+  onChange,
+  onRemove,
+}: {
+  group: Group;
+  index: number;
+  used: boolean;
+  onChange: (group: Group) => void;
+  onRemove: () => void;
+}) {
+  return (
+    <div className="group-row">
+      <Input
+        aria-label={`Group name ${index + 1}`}
+        value={group.name}
+        onChange={event => onChange({ ...group, name: event.target.value })}
+      />
+      <Select
+        value={group.color}
+        onValueChange={color => {
+          if (color) onChange({ ...group, color: color as Group['color'] });
+        }}
+      >
+        <SelectTrigger className="w-full" aria-label={`Group colour ${index + 1}`}>
+          <SelectValue>{(color: Group['color']) => <ColorName color={color} />}</SelectValue>
+        </SelectTrigger>
+        <SelectContent>
+          {palette.map(color => (
+            <SelectItem key={color} value={color}>
+              <ColorName color={color} />
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
       <Button
         type="button"
-        variant="outline"
-        onClick={() =>
-          setGroups([
-            ...groups,
-            {
-              id: generateId(
-                'group',
-                groups.map(value => value.id),
-              ),
-              name: 'New Group',
-              color: palette[groups.length % palette.length],
-            },
-          ])
-        }
+        variant="ghost"
+        size="icon"
+        disabled={used}
+        aria-label={`Remove Group ${group.name}`}
+        title={used ? 'Used by an Item' : 'Remove Group'}
+        className="text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+        onClick={onRemove}
       >
-        Add Group
+        <Trash2Icon aria-hidden="true" />
       </Button>
-      <Button type="submit">Save settings</Button>
-    </form>
+    </div>
+  );
+}
+// Offers to undo a delete for a few seconds, holding while it is hovered or focused.
+function DeletedToast({
+  text,
+  onUndo,
+  onDone,
+}: {
+  text: string;
+  onUndo: () => void;
+  onDone: () => void;
+}) {
+  const [held, setHeld] = useState(false);
+  const done = useRef(onDone);
+  useEffect(() => {
+    done.current = onDone;
+  });
+  useEffect(() => {
+    if (held) return;
+    const timer = setTimeout(() => done.current(), 6000);
+    return () => clearTimeout(timer);
+  }, [held, text]);
+  return (
+    <div
+      className="chart-toast"
+      data-tone="neutral"
+      role="status"
+      onPointerEnter={() => setHeld(true)}
+      onPointerLeave={() => setHeld(false)}
+      onFocus={() => setHeld(true)}
+      onBlur={() => setHeld(false)}
+    >
+      <span className="flex-1 self-center">{text}</span>
+      <Button variant="ghost" size="sm" onClick={onUndo}>
+        <Undo2Icon />
+        Undo
+      </Button>
+      <Button variant="ghost" size="icon-xs" aria-label="Dismiss" onClick={onDone}>
+        <XIcon />
+      </Button>
+    </div>
   );
 }

@@ -395,6 +395,11 @@ li {
   line-height: 1.45;
   animation: toast-in 200ms ease-out;
 }
+.chart-toast[data-tone='neutral'] {
+  align-items: center;
+  padding-block: 6px;
+  color: var(--ink);
+}
 @keyframes toast-in {
   from {
     opacity: 0;
@@ -823,7 +828,7 @@ li {
 }
 .group-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 8rem 4.5rem;
+  grid-template-columns: minmax(0, 1fr) 8rem 2rem;
   align-items: center;
   gap: 8px;
 }

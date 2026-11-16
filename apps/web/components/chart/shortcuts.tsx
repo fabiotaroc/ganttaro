@@ -57,6 +57,10 @@ function sections(mac: boolean): { title: string; shortcuts: Shortcut[] }[] {
         { keys: [[mac ? '⌫' : 'Delete']], action: 'Remove', edits: true },
       ],
     },
+    {
+      title: 'In details',
+      shortcuts: [{ keys: [[mod, 'Enter']], action: 'Save Item', edits: true }],
+    },
   ];
 }
 export function Shortcuts({
