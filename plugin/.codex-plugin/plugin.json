@@ -1,12 +1,12 @@
 {
   "name": "ganttaro",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Work with shared Ganttaro Charts using version-checked MCP tools.",
   "author": {
     "name": "Taro",
     "url": "https://github.com/fabiotaroc"
   },
-  "homepage": "https://ganttaro.vercel.app",
+  "homepage": "https://ganttaro.com",
   "repository": "https://github.com/fabiotaroc/ganttaro",
   "keywords": ["gantt", "planning", "mcp"],
   "skills": "./skills/",
@@ -18,7 +18,7 @@
     "developerName": "Taro",
     "category": "Productivity",
     "capabilities": ["Read", "Write"],
-    "websiteURL": "https://ganttaro.vercel.app",
+    "websiteURL": "https://ganttaro.com",
     "defaultPrompt": [
       "Read this Ganttaro Chart and summarize the plan.",
       "Add the Tasks I describe to this Chart.",

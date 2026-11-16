@@ -9,7 +9,7 @@
 Plan a project in your browser, or ask an agent to build and update the timeline
 for you. Everyone works on the same live Chart, with no sign-up required.
 
-**[Open Ganttaro →](https://ganttaro.vercel.app)**
+**[Open Ganttaro →](https://ganttaro.com)**
 
 ## What you can do
 
@@ -79,7 +79,7 @@ without editing access, use its View Link. Changes appear live in the browser.
 
 ### Other MCP clients
 
-Connect to `https://ganttaro.vercel.app/mcp` using **Streamable HTTP**. No MCP login
+Connect to `https://ganttaro.com/mcp` using **Streamable HTTP**. No MCP login
 is required; access to each Chart comes from its Edit Link or View Link.
 The [Ganttaro skill](plugin/skills/ganttaro/SKILL.md) explains the tools and scheduling rules.
 
