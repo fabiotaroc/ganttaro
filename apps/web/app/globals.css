@@ -473,6 +473,9 @@ li {
   font-size: 12px;
   font-weight: 650;
   border-right: 1px solid var(--line);
+  /* Cover the calendar's bottom border too, so day columns scrolled underneath stay hidden.
+     An opaque match for --line over --surface-2, which is translucent in dark mode. */
+  box-shadow: 0 1px 0 light-dark(#dce2eb, oklch(0.296 0.014 255));
 }
 .gantt-heading span {
   color: var(--muted-ink-2);
@@ -604,8 +607,9 @@ li {
   flex-shrink: 0;
   background: var(--surface);
   border-right: 1px solid var(--line);
-  /* Cover the row's bottom border too, so Dependency lines on a row boundary stay hidden. */
-  box-shadow: 0 1px 0 var(--line-soft);
+  /* Cover the row's bottom border too, so Dependency lines on a row boundary stay hidden.
+     An opaque match for --line-soft over --surface, which is translucent in dark mode. */
+  box-shadow: 0 1px 0 light-dark(#edf0f5, oklch(0.282 0.015 255));
   padding: 0 18px;
   display: flex;
   align-items: center;
