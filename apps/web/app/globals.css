@@ -634,11 +634,22 @@ li {
   font-style: normal;
   font-weight: 700;
 }
+/* Renamed in place: the field looks like the name, so nothing shifts. */
+.gantt-name[data-editing] {
+  cursor: text;
+}
 .gantt-name input {
-  width: 100%;
-  padding: 4px;
-  border: 1px solid var(--today-line);
-  border-radius: 4px;
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  font: inherit;
+  font-weight: 500;
+  letter-spacing: inherit;
+  color: inherit;
+  outline: none;
 }
 .gantt-track {
   position: relative;

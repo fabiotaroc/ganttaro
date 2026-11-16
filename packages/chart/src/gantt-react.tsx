@@ -383,8 +383,15 @@ export function Gantt({
                 return (
                   <parts.Row key={id} className="gantt-row" style={{ height: rowHeight }}>
                     {state.editing === id ? (
-                      <div className="gantt-name">
-                        <parts.Input aria-label={`Rename ${item.name || 'unnamed Item'}`} />
+                      <div className="gantt-name" data-editing="">
+                        <span aria-hidden="true">{item.on !== undefined ? '◇' : '≡'}</span>
+                        <parts.Input
+                          aria-label={`Rename ${item.name || 'unnamed Item'}`}
+                          spellCheck={false}
+                        />
+                        {(bad.has(id) || flagged.has(id)) && (
+                          <em aria-label={bad.has(id) ? 'Conflict' : 'Flagged'}>!</em>
+                        )}
                       </div>
                     ) : (
                       <parts.Label
