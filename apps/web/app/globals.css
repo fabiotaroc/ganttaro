@@ -986,14 +986,30 @@ li {
   border-top: 1px solid var(--line-soft);
 }
 .gantt-hover-actions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   padding: 4px 8px;
   border-radius: 6px;
   color: var(--accent-deep);
   font-weight: 500;
   transition: background-color 120ms ease-out;
 }
+.gantt-hover-actions button svg {
+  width: 14px;
+  height: 14px;
+  opacity: 0.6;
+  transition:
+    opacity 120ms ease-out,
+    transform 120ms ease-out;
+}
 .gantt-hover-actions button:hover {
   background: var(--action-hover);
+}
+.gantt-hover-actions button:hover svg,
+.gantt-hover-actions button:focus-visible svg {
+  opacity: 1;
+  transform: scale(1.1);
 }
 .gantt-bar:hover .gantt-hover,
 .gantt-bar:focus-within .gantt-hover {

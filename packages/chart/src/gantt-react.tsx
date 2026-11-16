@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
+import { CheckIcon, LinkIcon, PanelRightOpenIcon } from 'lucide-react';
 import { createParts } from '@ui-sdk/react/primitive';
 import {
   conflicts,
@@ -201,6 +202,7 @@ function HoverCard({
               });
           }}
         >
+          {copied ? <CheckIcon aria-hidden="true" /> : <LinkIcon aria-hidden="true" />}
           {copied ? 'Copied' : 'Copy link'}
         </button>
         <button
@@ -211,6 +213,7 @@ function HoverCard({
             onOpen();
           }}
         >
+          <PanelRightOpenIcon aria-hidden="true" />
           Open details
         </button>
       </span>
