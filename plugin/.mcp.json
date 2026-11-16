@@ -1,3 +1,8 @@
 {
-  "ganttaro": { "type": "http", "url": "https://ganttaro.vercel.app/mcp" }
+  "mcpServers": {
+    "ganttaro": {
+      "type": "http",
+      "url": "https://ganttaro.vercel.app/mcp"
+    }
+  }
 }

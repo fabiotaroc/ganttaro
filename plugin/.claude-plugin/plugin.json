@@ -2,5 +2,11 @@
   "name": "ganttaro",
   "version": "0.1.0",
   "description": "Work with shared Ganttaro Charts using version-checked MCP tools.",
-  "author": { "name": "Taro" }
+  "author": {
+    "name": "Taro",
+    "url": "https://github.com/fabiotaroc"
+  },
+  "homepage": "https://ganttaro.vercel.app",
+  "repository": "https://github.com/fabiotaroc/ganttaro",
+  "keywords": ["gantt", "planning", "mcp"]
 }
