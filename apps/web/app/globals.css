@@ -477,6 +477,18 @@ li {
      An opaque match for --line over --surface-2, which is translucent in dark mode. */
   box-shadow: 0 1px 0 light-dark(#dce2eb, oklch(0.296 0.014 255));
 }
+.gantt-heading-hint {
+  float: right;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--muted-ink-2);
+  opacity: 0;
+  transition: opacity 150ms ease-out;
+}
+.gantt-scroll:has(.gantt-name:hover) .gantt-heading-hint,
+.gantt-scroll[data-reordering] .gantt-heading-hint {
+  opacity: 1;
+}
 .gantt-heading span {
   color: var(--muted-ink-2);
   margin-left: 10px;
@@ -621,6 +633,39 @@ li {
 .gantt-name span {
   color: var(--muted-ink-3);
   font-size: 16px;
+}
+.gantt-grip {
+  position: absolute;
+  left: 3px;
+  width: 12px;
+  height: 12px;
+  color: var(--muted-ink-3);
+  opacity: 0;
+  transition: opacity 120ms ease-out;
+}
+.gantt-name:hover .gantt-grip,
+.gantt-row[data-grabbed] .gantt-grip {
+  opacity: 1;
+}
+/* The picked-up row lifts above the others; RowMotion moves it with the pointer. */
+.gantt-row[data-grabbed] {
+  z-index: 7;
+  background: var(--surface);
+  box-shadow: var(--shadow-overlay);
+}
+.gantt-scroll[data-reordering],
+.gantt-scroll[data-reordering] * {
+  cursor: grabbing;
+}
+.gantt-scroll[data-reordering] .gantt-hover {
+  display: none;
+}
+.gantt-arrows {
+  transition: opacity 150ms ease-out;
+}
+/* Dependency lines jump to each new order instead of sliding, so fade them during a drag. */
+.gantt-scroll[data-reordering] .gantt-arrows {
+  opacity: 0.2;
 }
 .gantt-name strong {
   white-space: nowrap;

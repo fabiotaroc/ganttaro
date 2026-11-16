@@ -1,6 +1,6 @@
 'use client';
-import { useEffect, useRef, useState } from 'react';
-import { CheckIcon, LinkIcon, PanelRightOpenIcon } from 'lucide-react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { CheckIcon, GripVerticalIcon, LinkIcon, PanelRightOpenIcon } from 'lucide-react';
 import { createParts } from '@ui-sdk/react/primitive';
 import {
   conflicts,
@@ -236,6 +236,80 @@ function route(x1: number, y1: number, x2: number, y2: number) {
   const lane = y2 + (y2 > y1 ? -rowHeight / 2 : rowHeight / 2);
   return `M${x1},${y1} H${x1 + gap} V${lane} H${x2 - gap} V${y2} H${x2}`;
 }
+type Moving = { key: string; pointer: boolean } | null;
+const rowsOf = (root: HTMLElement) => root.querySelectorAll<HTMLElement>('.gantt-row[data-row-id]');
+const offsetOf = (row: HTMLElement) => {
+  const transform = getComputedStyle(row).transform;
+  return transform === 'none' ? 0 : new DOMMatrix(transform).m42;
+};
+// Rows slide to their new places when the order changes (FLIP), and a row dragged with the
+// pointer follows it. Core's --drag-y is the distance from where the drag started, so the
+// row's own layout move is taken off it.
+function RowMotion({
+  scroll,
+  order,
+  moving,
+}: {
+  scroll: React.RefObject<HTMLDivElement | null>;
+  order: string[];
+  moving: Moving;
+}) {
+  const tops = useRef(new Map<string, number>());
+  const held = useRef<{ key: string; top: number } | null>(null);
+  const dragged = moving?.pointer ? moving.key : null;
+  useLayoutEffect(() => {
+    const root = scroll.current;
+    if (!root) return;
+    if (held.current?.key !== dragged) held.current = null;
+    const still =
+      typeof Element.prototype.animate !== 'function' ||
+      matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const next = new Map<string, number>();
+    for (const row of rowsOf(root)) {
+      const id = row.dataset.rowId!,
+        top = row.offsetTop,
+        before = tops.current.get(id);
+      next.set(id, top);
+      if (id === dragged) continue;
+      if (still) {
+        row.style.transform = '';
+        continue;
+      }
+      // A dropped row settles from where it was let go instead of jumping into place.
+      const from = before === undefined ? 0 : before + offsetOf(row) - top;
+      row.style.transform = '';
+      row.getAnimations().forEach(animation => animation.cancel());
+      if (Math.abs(from) < 1) continue;
+      row.animate([{ transform: `translateY(${from}px)` }, { transform: 'none' }], {
+        duration: 220,
+        easing: 'cubic-bezier(0.2, 0, 0, 1)',
+      });
+    }
+    tops.current = next;
+  }, [scroll, order.join(), dragged]);
+  useEffect(() => {
+    const root = scroll.current;
+    if (!root || !dragged) return;
+    const find = () =>
+      [...rowsOf(root)].find(row => row.dataset.rowId === dragged) as HTMLElement | undefined;
+    const start = find();
+    if (!start) return;
+    held.current = { key: dragged, top: start.offsetTop };
+    let frame = 0;
+    const follow = () => {
+      const row = find(),
+        label = row?.querySelector<HTMLElement>('.gantt-name');
+      if (row && label && held.current?.key === dragged) {
+        const y = parseFloat(label.style.getPropertyValue('--drag-y')) || 0;
+        row.style.transform = `translateY(${y - (row.offsetTop - held.current.top)}px)`;
+      }
+      frame = requestAnimationFrame(follow);
+    };
+    follow();
+    return () => cancelAnimationFrame(frame);
+  }, [scroll, dragged]);
+  return null;
+}
 export function Gantt({
   chart,
   start,
@@ -268,6 +342,7 @@ export function Gantt({
   ) => void;
 }) {
   const pending = useRef<Promise<unknown>>(Promise.resolve());
+  const scroll = useRef<HTMLDivElement>(null);
   const parts = readOnly ? viewParts : editParts;
   const geometry = layout(chart, { start, end });
   const today = new Date().toISOString().slice(0, 10);
@@ -305,10 +380,19 @@ export function Gantt({
         const byId = new Map(chart.items.map(item => [item.id, item]));
         const spanById = new Map(state.items.map(span => [span.id, span]));
         return (
-          <div className="gantt-scroll" data-connecting={state.connecting ? '' : undefined}>
+          <div
+            ref={scroll}
+            className="gantt-scroll"
+            data-connecting={state.connecting ? '' : undefined}
+            data-reordering={state.moving?.pointer ? '' : undefined}
+          >
+            <RowMotion scroll={scroll} order={state.order} moving={state.moving} />
             <div className="gantt-calendar" style={{ width: geometry.width + 256 }}>
               <div className="gantt-heading">
                 Items <span>{chart.items.length}</span>
+                {!readOnly && chart.items.length > 1 && (
+                  <small className="gantt-heading-hint">Drag to reorder</small>
+                )}
               </div>
               <div className="gantt-days" data-zoom={chart.zoom} style={{ width: geometry.width }}>
                 <div className="gantt-months" aria-hidden="true">
@@ -381,7 +465,13 @@ export function Gantt({
                   span = spanById.get(id);
                 if (!item || !span) return null;
                 return (
-                  <parts.Row key={id} className="gantt-row" style={{ height: rowHeight }}>
+                  <parts.Row
+                    key={id}
+                    className="gantt-row"
+                    data-row-id={id}
+                    data-grabbed={state.moving?.key === id || undefined}
+                    style={{ height: rowHeight }}
+                  >
                     {state.editing === id ? (
                       <div className="gantt-name" data-editing="">
                         <span aria-hidden="true">{item.on !== undefined ? '◇' : '≡'}</span>
@@ -400,8 +490,15 @@ export function Gantt({
                         className="gantt-name"
                         data-item-id={id}
                         data-chart-id={chart.id}
-                        title="F2 to rename; Space to reorder"
+                        title={
+                          readOnly
+                            ? undefined
+                            : 'Drag or press Space to reorder. Double-click or F2 to rename.'
+                        }
                       >
+                        {!readOnly && (
+                          <GripVerticalIcon className="gantt-grip" aria-hidden="true" />
+                        )}
                         <span aria-hidden="true">{item.on !== undefined ? '◇' : '≡'}</span>
                         <strong>{item.name || 'Unnamed Item'}</strong>
                         {(bad.has(id) || flagged.has(id)) && (

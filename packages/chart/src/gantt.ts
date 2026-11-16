@@ -384,6 +384,7 @@ export function makeGantt(readOnly: boolean) {
           chart: state.chart,
           items: state.draft?.spans ?? state.items,
           order: state.moving?.order ?? state.order,
+          moving: state.moving && { key: state.moving.key, pointer: state.moving.pointer },
           editing: state.editing,
           connecting: state.connecting,
         }),
