@@ -305,7 +305,7 @@ export function Gantt({
         const byId = new Map(chart.items.map(item => [item.id, item]));
         const spanById = new Map(state.items.map(span => [span.id, span]));
         return (
-          <div className="gantt-scroll">
+          <div className="gantt-scroll" data-connecting={state.connecting ? '' : undefined}>
             <div className="gantt-calendar" style={{ width: geometry.width + 256 }}>
               <div className="gantt-heading">
                 Items <span>{chart.items.length}</span>

@@ -1015,6 +1015,10 @@ li {
 .gantt-bar:focus-within .gantt-hover {
   display: block;
 }
+/* Out of the way while drawing a Dependency, so it never covers the Item being pointed at. */
+.gantt-scroll[data-connecting] .gantt-hover {
+  display: none;
+}
 /* Hidden until it has been placed, so it never flashes at the corner of the window. */
 .gantt-hover:not([data-side]) {
   visibility: hidden;
