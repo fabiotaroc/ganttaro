@@ -249,6 +249,31 @@ li {
   margin-top: 8px;
   max-width: 720px;
   white-space: pre-wrap;
+  display: block;
+}
+.inline-text {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  font: inherit;
+  letter-spacing: inherit;
+  color: inherit;
+  outline: none;
+  resize: none;
+  overflow: hidden;
+}
+.inline-text.chart-description {
+  color: #66748a;
+  font-size: 14px;
+  line-height: 1.6;
+  max-width: 720px;
+}
+.inline-text::placeholder {
+  color: #a6b0bf;
+  opacity: 1;
 }
 .chart-actions {
   display: flex;
@@ -335,26 +360,6 @@ li {
     animation: none;
   }
 }
-.chart-title {
-  font: inherit;
-  letter-spacing: inherit;
-  color: inherit;
-  text-align: left;
-  max-width: 100%;
-  margin: -2px -8px;
-  padding: 2px 8px;
-  border-radius: 8px;
-  transition: background-color 150ms ease-out;
-}
-button.chart-title:hover {
-  background: #eceff4;
-  cursor: text;
-}
-input.chart-title {
-  width: min(720px, 100%);
-  outline: 2px solid #4d60cb;
-  background: white;
-}
 .revision {
   display: flex;
   align-items: center;
@@ -395,7 +400,7 @@ input.chart-title {
 }
 .gantt-scroll {
   overflow: auto;
-  max-height: 70vh;
+  max-height: max(480px, calc(100dvh - 140px));
 }
 .gantt-calendar {
   position: sticky;
@@ -548,6 +553,8 @@ input.chart-title {
   flex-shrink: 0;
   background: #fff;
   border-right: 1px solid #dce2eb;
+  /* Cover the row's bottom border too, so Dependency lines on a row boundary stay hidden. */
+  box-shadow: 0 1px 0 #edf0f5;
   padding: 0 18px;
   display: flex;
   align-items: center;
@@ -606,37 +613,44 @@ input.chart-title {
   line-height: 14px;
   pointer-events: none;
 }
-.gantt-bar[data-group='blue'] {
+.gantt-bar[data-group='blue'],
+.group-swatch[data-group='blue'] {
   background: #e1eeff;
   border-color: #a5c7ef;
   color: #1d507e;
 }
-.gantt-bar[data-group='teal'] {
+.gantt-bar[data-group='teal'],
+.group-swatch[data-group='teal'] {
   background: #daf3ed;
   border-color: #9dd3c6;
   color: #185e51;
 }
-.gantt-bar[data-group='green'] {
+.gantt-bar[data-group='green'],
+.group-swatch[data-group='green'] {
   background: #e4f1df;
   border-color: #b2cea3;
   color: #385e2b;
 }
-.gantt-bar[data-group='amber'] {
+.gantt-bar[data-group='amber'],
+.group-swatch[data-group='amber'] {
   background: #fff0c9;
   border-color: #e3cb8b;
   color: #73560e;
 }
-.gantt-bar[data-group='orange'] {
+.gantt-bar[data-group='orange'],
+.group-swatch[data-group='orange'] {
   background: #ffeadb;
   border-color: #e6b795;
   color: #844c24;
 }
-.gantt-bar[data-group='rose'] {
+.gantt-bar[data-group='rose'],
+.group-swatch[data-group='rose'] {
   background: #fbe2ea;
   border-color: #dea6b7;
   color: #863b54;
 }
-.gantt-bar[data-group='violet'] {
+.gantt-bar[data-group='violet'],
+.group-swatch[data-group='violet'] {
   background: #eee4ff;
   border-color: #c8afea;
   color: #68448c;
@@ -752,6 +766,31 @@ input.chart-title {
   font-size: 12px;
   color: #7b889a;
 }
+.group-swatch {
+  display: inline-block;
+  flex-shrink: 0;
+  width: 14px;
+  height: 10px;
+  border: 1px solid #c4cbf2;
+  border-radius: 3px;
+  background: #e5e9ff;
+}
+.group-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 8rem 4.5rem;
+  align-items: center;
+  gap: 8px;
+}
+.chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+}
+.chart-legend li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
 .chart-footer [data-conflicts] {
   color: #a62e3a;
   font-weight: 550;
@@ -775,34 +814,160 @@ input.chart-title {
 }
 .gantt-hover {
   display: none;
-  position: absolute;
-  top: 24px;
+  position: fixed;
+  top: 0;
   left: 0;
-  width: 260px;
-  padding: 14px;
+  width: 280px;
+  padding: 12px 14px 10px;
   background: #fff;
   color: #344156;
-  border-radius: 10px;
+  border-radius: 12px;
   box-shadow:
     0 0 0 1px oklch(0 0 0 / 0.06),
-    0 8px 24px -4px oklch(0 0 0 / 0.14);
+    0 2px 4px -1px oklch(0 0 0 / 0.06),
+    0 12px 32px -6px oklch(0 0 0 / 0.18);
   font-size: 12px;
+  line-height: 1.45;
   cursor: auto;
 }
 .gantt-hover > * {
   display: block;
-  margin: 5px 0;
-  white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
-.gantt-hover button {
+.gantt-hover-kind {
+  display: flex !important;
+  align-items: center;
+  gap: 6px;
+  color: #7b889a;
+  font-size: 11px;
+  font-weight: 500;
+}
+.gantt-hover-name {
+  margin-top: 6px;
+  color: #182335;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -0.1px;
+}
+.gantt-hover-dates {
+  margin-top: 3px;
+  color: #4f5d72;
+  font-variant-numeric: tabular-nums;
+}
+.gantt-hover-dates > span {
+  color: #98a3b4;
+  white-space: nowrap;
+}
+.gantt-hover-dates > span::before {
+  content: ' · ';
+}
+.gantt-hover-note {
+  margin-top: 8px;
+  padding: 5px 8px;
+  border-radius: 6px;
+  background: #fdf3e1;
+  color: #7a5513;
+  font-size: 11px;
+}
+.gantt-hover-note[data-conflict] {
+  background: #fcebee;
+  color: #9b2336;
+}
+.gantt-hover-note + .gantt-hover-note {
+  margin-top: 4px;
+}
+.gantt-hover-description {
+  margin-top: 8px;
+  color: #4f5d72;
+  white-space: pre-wrap;
+  display: -webkit-box !important;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 5;
+  overflow: hidden;
+}
+.gantt-hover-owners {
+  display: flex !important;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 10px;
+}
+.gantt-hover-owners > span {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px 2px 2px;
+  border-radius: 999px;
+  background: #f1f3f7;
+  color: #344156;
+  font-size: 11px;
+  font-weight: 500;
+}
+.gantt-hover-owners > span > span {
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #dfe3ff;
+  color: #3b4aa3;
+  font-size: 9px;
+  font-weight: 650;
+}
+.gantt-hover-links {
+  margin-top: 8px;
+}
+.gantt-hover-links a {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   color: #354ca8;
-  text-align: left;
-  padding-top: 5px;
+  text-decoration: underline;
+  text-decoration-color: #c4cbf2;
+  text-underline-offset: 2px;
+}
+.gantt-hover-links a + a {
+  margin-top: 2px;
+}
+.gantt-hover-actions {
+  display: flex !important;
+  gap: 4px;
+  margin: 10px -6px 0;
+  padding-top: 8px;
+  border-top: 1px solid #edf0f5;
+}
+.gantt-hover-actions button {
+  padding: 4px 8px;
+  border-radius: 6px;
+  color: #354ca8;
+  font-weight: 500;
+  transition: background-color 120ms ease-out;
+}
+.gantt-hover-actions button:hover {
+  background: #eef0fb;
 }
 .gantt-bar:hover .gantt-hover,
 .gantt-bar:focus-within .gantt-hover {
   display: block;
+}
+/* Hidden until it has been placed, so it never flashes at the corner of the window. */
+.gantt-hover:not([data-side]) {
+  visibility: hidden;
+}
+/* An invisible bridge over the gap, so moving from the bar into the card keeps it open. */
+.gantt-hover::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 8px;
+}
+.gantt-hover[data-side='bottom']::before {
+  bottom: 100%;
+}
+.gantt-hover[data-side='top']::before {
+  top: 100%;
 }
 .home-page {
   width: 100%;

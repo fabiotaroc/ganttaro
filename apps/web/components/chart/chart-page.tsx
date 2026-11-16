@@ -280,12 +280,31 @@ function LoadedChart({
       </header>
       <section className="chart-intro">
         <div className="min-w-0 flex-1">
-          <ChartTitle
-            title={chart.title}
+          <h1>
+            {readOnly && !chart.title ? (
+              'Untitled Chart'
+            ) : (
+              <InlineText
+                value={chart.title}
+                readOnly={readOnly}
+                label="Chart title"
+                placeholder="Untitled Chart"
+                className="chart-title"
+                onSave={(title, event) => void edit([{ type: 'chart', fields: { title } }], event)}
+              />
+            )}
+          </h1>
+          <InlineText
+            value={chart.description ?? ''}
             readOnly={readOnly}
-            onSave={(title, event) => void edit([{ type: 'chart', fields: { title } }], event)}
+            multiline
+            label="Chart description"
+            placeholder="Add a description"
+            className="chart-description"
+            onSave={(description, event) =>
+              void edit([{ type: 'chart', fields: { description } }], event)
+            }
           />
-          {chart.description && <p className="chart-description">{chart.description}</p>}
         </div>
         {!readOnly && (
           <div className="chart-actions">
@@ -473,6 +492,7 @@ function LoadedChart({
             {count(initial.conflicts.length, 'Conflict')}
           </span>
         </span>
+        <Legend groups={chart.groups} />
       </footer>
       {message && (
         <div className="chart-toast" role="alert">
@@ -516,7 +536,7 @@ function LoadedChart({
           if (!open) setDialog(null);
         }}
       >
-        <DialogContent className="max-h-[90vh] overflow-auto">
+        <DialogContent className="max-h-[90vh] overflow-auto sm:max-w-lg">
           <DialogTitle>Chart settings</DialogTitle>
           <DialogDescription>Title, description, Holidays and Groups.</DialogDescription>
           <Settings chart={chart} edit={edit} close={() => setDialog(null)} />
@@ -541,59 +561,86 @@ function LoadedChart({
   );
 }
 const mac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform);
-function ChartTitle({
-  title,
+// Always editable in place: the field looks like the text, so nothing shifts on click.
+function InlineText({
+  value,
   readOnly,
+  multiline,
+  label,
+  placeholder,
+  className,
   onSave,
 }: {
-  title: string;
+  value: string;
   readOnly: boolean;
-  onSave: (title: string, event: { nativeEvent: Event }) => void;
+  multiline?: boolean;
+  label: string;
+  placeholder: string;
+  className: string;
+  onSave: (value: string, event: { nativeEvent: Event }) => void;
 }) {
-  const [editing, setEditing] = useState(false);
-  const done = useRef(false);
-  if (readOnly) return <h1>{title || 'Untitled Chart'}</h1>;
-  if (!editing)
-    return (
-      <h1>
-        <button
-          type="button"
-          className="chart-title"
-          title="Rename Chart"
-          onClick={() => {
-            done.current = false;
-            setEditing(true);
-          }}
-        >
-          {title || 'Untitled Chart'}
-        </button>
-      </h1>
-    );
-  const finish = (
-    event: { currentTarget: HTMLInputElement; nativeEvent: Event },
-    save: boolean,
-  ) => {
-    if (done.current) return;
-    done.current = true;
-    const value = event.currentTarget.value.trim();
-    setEditing(false);
-    if (save && value && value !== title) onSave(value, event);
-  };
+  const [draft, setDraft] = useState(value);
+  const [focused, setFocused] = useState(false);
+  const ref = useRef<HTMLInputElement & HTMLTextAreaElement>(null);
+  // Follow other people's edits unless this field is being edited.
+  if (!focused && draft !== value) setDraft(value);
+  useEffect(() => {
+    const el = ref.current;
+    if (!multiline || !el) return;
+    el.style.height = 'auto';
+    el.style.height = `${el.scrollHeight}px`;
+  }, [draft, multiline]);
+  if (readOnly) return value ? <span className={className}>{value}</span> : null;
+  const Field = multiline ? 'textarea' : 'input';
   return (
-    <h1>
-      <input
-        className="chart-title"
-        aria-label="Chart title"
-        defaultValue={title}
-        autoFocus
-        onFocus={event => event.currentTarget.select()}
-        onBlur={event => finish(event, true)}
-        onKeyDown={event => {
-          if (event.key === 'Enter') finish(event, true);
-          if (event.key === 'Escape') finish(event, false);
-        }}
-      />
-    </h1>
+    <Field
+      ref={ref}
+      className={`inline-text ${className}`}
+      aria-label={label}
+      placeholder={placeholder}
+      value={draft}
+      rows={multiline ? 1 : undefined}
+      spellCheck={false}
+      onChange={event => setDraft(event.currentTarget.value)}
+      onFocus={() => setFocused(true)}
+      onBlur={event => {
+        setFocused(false);
+        const next = draft.trim();
+        if (next !== value && (next || multiline)) onSave(next, event);
+        else setDraft(value);
+      }}
+      onKeyDown={event => {
+        if (event.key === 'Escape') {
+          setDraft(value);
+          // Blur after the revert renders, so the old value is what gets compared.
+          requestAnimationFrame(() => ref.current?.blur());
+        } else if (event.key === 'Enter' && (!multiline || event.metaKey || event.ctrlKey)) {
+          event.preventDefault();
+          event.currentTarget.blur();
+        }
+      }}
+    />
+  );
+}
+function ColorName({ color }: { color: Group['color'] }) {
+  return (
+    <span className="flex items-center gap-2">
+      <span className="group-swatch" data-group={color} aria-hidden="true" />
+      {color[0].toUpperCase() + color.slice(1)}
+    </span>
+  );
+}
+function Legend({ groups }: { groups: Group[] }) {
+  if (!groups.length) return null;
+  return (
+    <ul className="chart-legend" aria-label="Groups">
+      {groups.map(group => (
+        <li key={group.id}>
+          <span className="group-swatch" data-group={group.color} aria-hidden="true" />
+          {group.name}
+        </li>
+      ))}
+    </ul>
   );
 }
 function count(value: number, noun: string) {
@@ -733,8 +780,14 @@ function Settings({ chart, edit, close }: { chart: Chart; edit: EventEdit; close
         </p>
       </div>
       <Label>Groups</Label>
+      {groups.length > 0 && (
+        <div className="group-row text-xs text-muted-foreground" aria-hidden="true">
+          <span>Name</span>
+          <span>Colour</span>
+        </div>
+      )}
       {groups.map((group, index) => (
-        <div className="flex gap-2" key={group.id}>
+        <div className="group-row" key={group.id}>
           <Input
             aria-label={`Group name ${index + 1}`}
             value={group.name}
@@ -757,13 +810,13 @@ function Settings({ chart, edit, close }: { chart: Chart; edit: EventEdit; close
                 );
             }}
           >
-            <SelectTrigger aria-label={`Group colour ${index + 1}`}>
-              <SelectValue />
+            <SelectTrigger className="w-full" aria-label={`Group colour ${index + 1}`}>
+              <SelectValue>{(color: Group['color']) => <ColorName color={color} />}</SelectValue>
             </SelectTrigger>
             <SelectContent>
               {palette.map(color => (
                 <SelectItem key={color} value={color}>
-                  {color}
+                  <ColorName color={color} />
                 </SelectItem>
               ))}
             </SelectContent>

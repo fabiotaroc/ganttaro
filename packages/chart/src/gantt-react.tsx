@@ -1,5 +1,5 @@
 'use client';
-import { useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createParts } from '@ui-sdk/react/primitive';
 import {
   conflicts,
@@ -8,8 +8,11 @@ import {
   layout,
   nextWorkingDay,
   startOf,
+  workingDaysBetween,
   type Chart,
   type Change,
+  type Group,
+  type Item,
 } from '@ganttaro/core';
 import { gantt, viewGantt, type EditDetails } from './gantt';
 const editParts = createParts(gantt, {
@@ -62,6 +65,174 @@ function months(columns: Column[]) {
   }
   return result;
 }
+const shortDate = (date: string, year: boolean, weekday = false) =>
+  day(date).toLocaleDateString('en', {
+    ...(weekday ? { weekday: 'short' } : {}),
+    month: 'short',
+    day: 'numeric',
+    ...(year ? { year: 'numeric' } : {}),
+    timeZone: 'UTC',
+  });
+function HoverCard({
+  item,
+  group,
+  holidays,
+  notes,
+  onOpen,
+}: {
+  item: Item;
+  group?: Group;
+  holidays: string[];
+  notes: { conflict: boolean; text: string }[];
+  onOpen: () => void;
+}) {
+  const [copied, setCopied] = useState(false);
+  const ref = useRef<HTMLSpanElement>(null);
+  // The chart clips its overflow, so place the card against the window instead:
+  // below the bar when it fits, otherwise above, and never past the window's edges.
+  useEffect(() => {
+    const card = ref.current,
+      bar = card?.parentElement;
+    if (!card || !bar) return;
+    const place = () => {
+      if (getComputedStyle(card).display === 'none') return;
+      const anchor = bar.getBoundingClientRect(),
+        { width, height } = card.getBoundingClientRect(),
+        margin = 8,
+        gap = 4;
+      const above = anchor.bottom + gap + height > innerHeight - margin && anchor.top > height;
+      card.dataset.side = above ? 'top' : 'bottom';
+      card.style.top = `${above ? anchor.top - gap - height : anchor.bottom + gap}px`;
+      card.style.left = `${Math.max(margin, Math.min(anchor.left, innerWidth - width - margin))}px`;
+    };
+    const show = () => {
+      requestAnimationFrame(place);
+      addEventListener('scroll', place, true);
+    };
+    const hide = () =>
+      requestAnimationFrame(() => {
+        if (bar.matches(':hover, :focus-within')) return;
+        removeEventListener('scroll', place, true);
+        delete card.dataset.side;
+      });
+    bar.addEventListener('pointerenter', show);
+    bar.addEventListener('focusin', show);
+    bar.addEventListener('pointerleave', hide);
+    bar.addEventListener('focusout', hide);
+    return () => {
+      hide();
+      bar.removeEventListener('pointerenter', show);
+      bar.removeEventListener('focusin', show);
+      bar.removeEventListener('pointerleave', hide);
+      bar.removeEventListener('focusout', hide);
+    };
+  }, []);
+  const milestone = item.on !== undefined;
+  const start = startOf(item),
+    end = endOf(item);
+  const days = workingDaysBetween(start, end, holidays);
+  const stop = (event: React.PointerEvent) => event.stopPropagation();
+  return (
+    <span className="gantt-hover" ref={ref}>
+      <span className="gantt-hover-kind">
+        <span className="group-swatch" data-group={group?.color ?? 'indigo'} aria-hidden="true" />
+        {group?.name ?? 'No Group'}
+        <span aria-hidden="true">·</span>
+        {milestone ? 'Milestone' : 'Task'}
+      </span>
+      <strong className="gantt-hover-name">{item.name || 'Unnamed Item'}</strong>
+      <span className="gantt-hover-dates">
+        {milestone
+          ? shortDate(start, true, true)
+          : `${shortDate(start, start.slice(0, 4) !== end.slice(0, 4))} – ${shortDate(end, true)}`}
+        {!milestone && (
+          <span>
+            {days} Working Day{days === 1 ? '' : 's'}
+          </span>
+        )}
+      </span>
+      {notes.map(note => (
+        <span
+          key={note.text}
+          className="gantt-hover-note"
+          data-conflict={note.conflict || undefined}
+        >
+          {note.text}
+        </span>
+      ))}
+      {item.description && <span className="gantt-hover-description">{item.description}</span>}
+      {item.owners?.length ? (
+        <span className="gantt-hover-owners" aria-label="Owners">
+          {item.owners.map(owner => (
+            <span key={owner}>
+              <span aria-hidden="true">{owner.slice(0, 1).toUpperCase()}</span>
+              {owner}
+            </span>
+          ))}
+        </span>
+      ) : null}
+      {item.links?.length ? (
+        <span className="gantt-hover-links">
+          {item.links.map(link => (
+            <a
+              key={link}
+              href={/^https?:\/\//.test(link) ? link : undefined}
+              target="_blank"
+              rel="noreferrer"
+              onPointerDown={stop}
+            >
+              {link.replace(/^https?:\/\/(www\.)?/, '')}
+            </a>
+          ))}
+        </span>
+      ) : null}
+      <span className="gantt-hover-actions">
+        <button
+          type="button"
+          title="Copy link to this Item"
+          onPointerDown={stop}
+          onClick={event => {
+            event.stopPropagation();
+            void navigator.clipboard
+              .writeText(`${location.origin}${location.pathname}#item-${item.id}`)
+              .then(() => {
+                setCopied(true);
+                setTimeout(() => setCopied(false), 1500);
+              });
+          }}
+        >
+          {copied ? 'Copied' : 'Copy link'}
+        </button>
+        <button
+          type="button"
+          onPointerDown={stop}
+          onClick={event => {
+            event.stopPropagation();
+            onOpen();
+          }}
+        >
+          Open details
+        </button>
+      </span>
+    </span>
+  );
+}
+type Span = { start: number; end: number };
+// Milestones are drawn as a diamond centred in their column, about 16px wide.
+const diamond = 8;
+const exit = (span: Span, milestone: boolean, width: number) =>
+  milestone ? ((span.start + span.end) / 2) * width + diamond : span.end * width;
+const entry = (span: Span, milestone: boolean, width: number) =>
+  milestone ? ((span.start + span.end) / 2) * width - diamond : span.start * width;
+// When the successor starts left of the predecessor's exit (for example a Task on its
+// predecessor Milestone's date), detour along the row boundary so the arrow still enters
+// from the left.
+function route(x1: number, y1: number, x2: number, y2: number) {
+  const gap = 12;
+  if (x2 - x1 >= gap * 2) return `M${x1},${y1} H${x2 - gap} V${y2} H${x2}`;
+  const lane = y2 + (y2 > y1 ? -rowHeight / 2 : rowHeight / 2);
+  return `M${x1},${y1} H${x1 + gap} V${lane} H${x2 - gap} V${y2} H${x2}`;
+}
 export function Gantt({
   chart,
   start,
@@ -100,6 +271,13 @@ export function Gantt({
   const todayBoundary = nextWorkingDay(today, [], true);
   const bad = new Set(conflicts(chart).map(value => value.item));
   const flagged = new Set(flags(chart).map(value => value.item));
+  const notes = new Map<string, { conflict: boolean; text: string }[]>();
+  const note = (id: string, conflict: boolean, text: string) =>
+    notes.set(id, [...(notes.get(id) ?? []), { conflict, text }]);
+  for (const id of bad)
+    note(id, true, 'Conflict: starts before an Item it comes after has finished');
+  for (const flag of flags(chart))
+    note(flag.item, false, flag.kind === 'holiday' ? `On a Holiday: ${flag.date}` : 'Has no name');
   return (
     <parts.Root
       chart={chart}
@@ -240,14 +418,6 @@ export function Gantt({
                         id={`item-${id}`}
                         aria-label={`${item.name || 'Unnamed Item'}: ${startOf(item)}${item.on !== undefined ? '' : ` to ${endOf(item)}`}${bad.has(id) ? ', Conflict' : ''}`}
                         aria-description="Enter: details. Alt+arrows: move. Alt+Shift+arrows: resize. C: Dependency. Delete: remove."
-                        title={[
-                          item.name,
-                          item.description,
-                          item.owners?.join(', '),
-                          ...(item.links ?? []),
-                        ]
-                          .filter(Boolean)
-                          .join('\n')}
                         style={{
                           left: span.start * geometry.columnWidth,
                           width: (span.end - span.start) * geometry.columnWidth,
@@ -263,49 +433,13 @@ export function Gantt({
                         <span className="gantt-bar-name">
                           {item.on !== undefined ? '◆' : item.name}
                         </span>
-                        <span className="gantt-hover">
-                          <strong>{item.name || 'Unnamed Item'}</strong>
-                          <span>
-                            {startOf(item)}
-                            {item.on === undefined ? ` — ${endOf(item)}` : ''}
-                          </span>
-                          {item.description && <span>{item.description}</span>}
-                          {item.owners?.length ? (
-                            <span>Owners: {item.owners.join(', ')}</span>
-                          ) : null}
-                          {item.links?.map(link => (
-                            <a
-                              key={link}
-                              href={/^https?:\/\//.test(link) ? link : undefined}
-                              target="_blank"
-                              rel="noreferrer"
-                            >
-                              {link}
-                            </a>
-                          ))}
-                          <button
-                            type="button"
-                            onPointerDown={event => event.stopPropagation()}
-                            onClick={event => {
-                              event.stopPropagation();
-                              void navigator.clipboard.writeText(
-                                `${location.origin}${location.pathname}#item-${id}`,
-                              );
-                            }}
-                          >
-                            Copy link to this Item
-                          </button>
-                          <button
-                            type="button"
-                            onPointerDown={event => event.stopPropagation()}
-                            onClick={event => {
-                              event.stopPropagation();
-                              onOpen(id);
-                            }}
-                          >
-                            Open details
-                          </button>
-                        </span>
+                        <HoverCard
+                          item={item}
+                          group={chart.groups.find(group => group.id === item.group)}
+                          holidays={chart.holidays}
+                          notes={notes.get(id) ?? []}
+                          onOpen={() => onOpen(id)}
+                        />
                         {!readOnly && (
                           <>
                             <parts.Port value={`${id}:out`} className="gantt-port out" />
@@ -341,15 +475,14 @@ export function Gantt({
                     const a = spanById.get(after),
                       b = spanById.get(item.id);
                     if (!a || !b) return null;
-                    const x1 = a.end * geometry.columnWidth,
+                    const x1 = exit(a, byId.get(after)?.on !== undefined, geometry.columnWidth),
                       y1 = state.order.indexOf(after) * rowHeight + rowHeight / 2;
-                    const x2 = b.start * geometry.columnWidth,
+                    const x2 = entry(b, item.on !== undefined, geometry.columnWidth),
                       y2 = state.order.indexOf(item.id) * rowHeight + rowHeight / 2;
-                    const mid = Math.max(x1 + 12, x2 - 12);
                     return (
                       <path
                         key={`${after}:${item.id}`}
-                        d={`M${x1},${y1} H${mid} V${y2} H${x2}`}
+                        d={route(x1, y1, x2, y2)}
                         markerEnd="url(#gantt-arrow)"
                         className={bad.has(item.id) ? 'conflict' : ''}
                         tabIndex={readOnly ? undefined : 0}
@@ -367,10 +500,13 @@ export function Gantt({
                 )}
                 {state.connecting && !state.connecting.to && (
                   <line
-                    x1={
-                      (spanById.get(state.connecting.from.split(':')[0])?.end ?? 0) *
-                      geometry.columnWidth
-                    }
+                    x1={(() => {
+                      const id = state.connecting.from.split(':')[0],
+                        span = spanById.get(id);
+                      return span
+                        ? exit(span, byId.get(id)?.on !== undefined, geometry.columnWidth)
+                        : 0;
+                    })()}
                     y1={
                       state.order.indexOf(state.connecting.from.split(':')[0]) * rowHeight +
                       rowHeight / 2
