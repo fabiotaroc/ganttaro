@@ -166,3 +166,7 @@ remaining verification work.
 
 Keep scheduling rules in `packages/core` so the browser and agents use the same
 validation. For UI SDK changes, follow the documentation steps in AGENTS.md.
+
+## License
+
+Ganttaro is released under the [MIT License](LICENSE).
