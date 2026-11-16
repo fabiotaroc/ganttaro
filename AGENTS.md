@@ -13,3 +13,10 @@ like any user would, not hand-written requests to `/mcp`.
 
 Keep domain rules in packages/core, free of React, Convex and I/O.
 Use the glossary's terms in code and user-facing copy.
+
+Use Conventional Commit messages: `fix(app): ...` or `feat(app): ...` for the
+web app, backend and shared Chart code; `fix(plugin): ...` or `feat(plugin): ...`
+for plugin changes; and `docs: ...` for documentation-only changes. Use the
+appropriate type for other work, such as `test`, `refactor` or `chore`.
+Reserve Git tags for repository-wide releases (`vMAJOR.MINOR.PATCH`); distinguish
+app and plugin changes in the release notes.
