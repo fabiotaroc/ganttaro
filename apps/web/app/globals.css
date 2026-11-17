@@ -725,13 +725,15 @@ li {
   pointer-events: none;
 }
 .gantt-bar[data-group='blue'],
-.group-swatch[data-group='blue'] {
+.group-swatch[data-group='blue'],
+.home-demo-bar[data-group='blue'] {
   background: light-dark(#e1eeff, oklch(0.32 0.05 240));
   border-color: light-dark(#a5c7ef, oklch(0.58 0.08 240));
   color: light-dark(#1d507e, oklch(0.9 0.04 240));
 }
 .gantt-bar[data-group='teal'],
-.group-swatch[data-group='teal'] {
+.group-swatch[data-group='teal'],
+.home-demo-bar[data-group='teal'] {
   background: light-dark(#daf3ed, oklch(0.32 0.04 175));
   border-color: light-dark(#9dd3c6, oklch(0.58 0.07 175));
   color: light-dark(#185e51, oklch(0.9 0.04 175));
@@ -761,12 +763,14 @@ li {
   color: light-dark(#863b54, oklch(0.92 0.04 10));
 }
 .gantt-bar[data-group='violet'],
-.group-swatch[data-group='violet'] {
+.group-swatch[data-group='violet'],
+.home-demo-bar[data-group='violet'] {
   background: light-dark(#eee4ff, oklch(0.32 0.06 305));
   border-color: light-dark(#c8afea, oklch(0.58 0.1 305));
   color: light-dark(#68448c, oklch(0.9 0.05 305));
 }
-.gantt-bar[data-conflict] {
+.gantt-bar[data-conflict],
+.home-demo-bar[data-conflict] {
   background: var(--danger-soft);
   border-color: var(--danger-line);
   color: var(--danger);
@@ -1099,7 +1103,7 @@ li {
 }
 .home-page {
   width: 100%;
-  max-width: 1040px;
+  max-width: 1160px;
   margin: 0 auto;
   padding: 0 36px 70px;
 }
@@ -1107,25 +1111,821 @@ li {
   justify-content: space-between;
 }
 .home-hero {
-  padding: 90px 0 70px;
-  max-width: 700px;
+  display: grid;
+  gap: 56px;
+  padding: 80px 0 48px;
+}
+@media (min-width: 960px) {
+  .home-hero {
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+    align-items: center;
+  }
 }
 .home-hero h1 {
-  font-size: clamp(40px, 6vw, 64px);
+  font-size: clamp(40px, 5vw, 56px);
   line-height: 1.05;
   letter-spacing: -2.4px;
   font-weight: 650;
   margin: 0 0 20px;
+  text-wrap: balance;
 }
 .home-hero h1 span {
+  display: block;
   color: var(--hero);
+  text-wrap: balance;
 }
-.home-hero > p {
+.home-hero-copy > p {
   max-width: 470px;
   font-size: 16px;
   line-height: 1.7;
   color: var(--muted-ink);
+  margin-bottom: 12px;
+  text-wrap: pretty;
+}
+.home-hero-note {
+  display: block;
   margin-bottom: 28px;
+  font-size: 12px;
+  color: var(--muted-ink-2);
+}
+.home-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+/* Depth from a shadow ring, so the button holds its edge on the tinted page. */
+.home-hero-github {
+  border-color: transparent;
+  background: var(--surface);
+  box-shadow: var(--shadow-border);
+}
+.home-hero-github:hover {
+  background: var(--hover-2);
+}
+.home-hero-copy > .home-hero-status {
+  min-height: 20px;
+  margin: 12px 0 0;
+  font-size: 12px;
+  line-height: 20px;
+  color: var(--muted-ink);
+}
+/* Alternates Claude and ChatGPT in one slot, sized to the wider of the two. */
+.setup-roll {
+  display: inline-grid;
+  overflow: hidden;
+  height: 20px;
+  margin: 0 -2px;
+  padding: 0 2px;
+}
+.setup-roll > span {
+  grid-area: 1 / 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  animation: setup-roll-claude 5s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+}
+.setup-roll > span + span {
+  animation-name: setup-roll-chatgpt;
+}
+.setup-roll svg {
+  width: 14px;
+  height: 14px;
+}
+[data-popup-open] .setup-roll > span {
+  animation-play-state: paused;
+}
+/* Once a prompt is copied, hold the harness it was copied for. */
+.setup-roll[data-chosen] > span {
+  animation: none;
+  opacity: 0;
+}
+.setup-roll[data-chosen='claude'] > span:first-child,
+.setup-roll[data-chosen='chatgpt'] > span + span {
+  opacity: 1;
+  visibility: visible;
+}
+@keyframes setup-roll-claude {
+  0%,
+  42% {
+    translate: 0;
+    opacity: 1;
+    filter: blur(0);
+  }
+  50%,
+  92% {
+    translate: 0 -100%;
+    opacity: 0;
+    filter: blur(2px);
+  }
+  92.01% {
+    translate: 0 100%;
+  }
+  100% {
+    translate: 0;
+    opacity: 1;
+    filter: blur(0);
+  }
+}
+@keyframes setup-roll-chatgpt {
+  0%,
+  42% {
+    translate: 0 100%;
+    opacity: 0;
+    filter: blur(2px);
+  }
+  50%,
+  92% {
+    translate: 0;
+    opacity: 1;
+    filter: blur(0);
+  }
+  100% {
+    translate: 0 -100%;
+    opacity: 0;
+    filter: blur(2px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .setup-roll > span {
+    animation: none;
+  }
+  .setup-roll > span + span {
+    visibility: hidden;
+  }
+}
+
+/* The hero's decorative demo: one 16-second loop, every part keyed to the same timeline. */
+.home-demo {
+  --loop: 16s;
+  --row: 44px;
+  --head: 34px;
+  position: relative;
+  padding-bottom: 132px;
+  user-select: none;
+  pointer-events: none;
+}
+.home-demo * {
+  animation-duration: var(--loop);
+  animation-iteration-count: infinite;
+  animation-timing-function: cubic-bezier(0.45, 0, 0.25, 1);
+}
+.home-demo-scene {
+  animation-name: demo-scene;
+}
+.home-demo-chart {
+  position: relative;
+  container-type: inline-size;
+  height: calc(var(--head) + 4 * var(--row));
+  border-radius: 14px;
+  background: var(--surface);
+  box-shadow: var(--shadow-raised);
+}
+.home-demo-days {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  height: var(--head);
+  border-bottom: 1px solid var(--line);
+  font-size: 10px;
+  font-weight: 550;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted-ink);
+}
+.home-demo-days span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+.home-demo-days span[data-week-start] {
+  border-left: 1px solid var(--line-month);
+}
+.home-demo-days small {
+  font-size: 9px;
+  color: var(--faint);
+}
+.home-demo-rows {
+  position: absolute;
+  inset: var(--head) 0 0;
+  border-radius: 0 0 14px 14px;
+  background: linear-gradient(to right, var(--line-faint) 1px, transparent 1px) 0 0 / 10% 100%;
+}
+.home-demo-rows div {
+  height: var(--row);
+  border-bottom: 1px solid var(--line-soft);
+}
+.home-demo-rows div:last-child {
+  border-bottom: 0;
+}
+.home-demo-bar {
+  position: absolute;
+  height: 26px;
+  border: 1px solid var(--accent-line);
+  border-radius: 5px;
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  padding: 5px 10px;
+  font-size: 10px;
+  font-weight: 550;
+  line-height: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.home-demo-design {
+  top: calc(var(--head) + 9px);
+  left: 3px;
+  width: calc(30cqw - 6px);
+  animation-name: demo-design;
+}
+.home-demo-build {
+  position: absolute;
+  top: calc(var(--head) + var(--row) + 9px);
+  left: calc(30cqw + 3px);
+  width: calc(30cqw - 6px);
+  height: 26px;
+  animation-name: demo-build;
+}
+.home-demo-build .home-demo-bar {
+  inset: 0;
+}
+.home-demo-docs {
+  top: calc(var(--head) + 2 * var(--row) + 9px);
+  left: calc(10cqw + 3px);
+  width: calc(40cqw - 6px);
+}
+.home-demo-conflict {
+  opacity: 0;
+  animation-name: demo-conflict;
+}
+/* The Dependency from Design to Build travels with Build, so it reads right in every frame. */
+.home-demo-link {
+  position: absolute;
+  right: 100%;
+  bottom: 13px;
+  width: 8px;
+  height: 31px;
+  border-left: 1.5px solid var(--faint-2);
+  border-bottom: 1.5px solid var(--faint-2);
+  border-bottom-left-radius: 4px;
+}
+.home-demo-link.home-demo-conflict {
+  border-color: var(--danger-line);
+}
+.home-demo-drawn {
+  position: absolute;
+  background: var(--faint-2);
+}
+.home-demo-drawn-down {
+  top: calc(var(--head) + var(--row) + 35px);
+  left: calc(80cqw - 8px);
+  width: 1.5px;
+  height: calc(2 * var(--row) - 13px);
+  transform-origin: top;
+  animation-name: demo-drawn-down;
+}
+.home-demo-drawn-across {
+  top: calc(var(--head) + 3 * var(--row) + 21px);
+  left: calc(80cqw - 8px);
+  width: calc(5cqw - 1px);
+  height: 1.5px;
+  transform-origin: left;
+  animation-name: demo-drawn-across;
+}
+.home-demo-milestone {
+  position: absolute;
+  top: calc(var(--head) + 3 * var(--row) + 15px);
+  left: calc(85cqw - 7px);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 10px;
+  font-weight: 550;
+  color: var(--milestone);
+  transform-origin: 7px 50%;
+  animation-name: demo-milestone;
+}
+.home-demo-milestone span {
+  width: 11px;
+  height: 11px;
+  margin: 0 1.5px;
+  border-radius: 2px;
+  background: var(--milestone);
+  rotate: 45deg;
+}
+.home-demo-cursor {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 5;
+  opacity: 0;
+  --tint: #5368d9;
+}
+.home-demo-cursor[data-who='you'] {
+  animation-name: demo-you;
+}
+.home-demo-cursor[data-who='claude'] {
+  --tint: #d97757;
+  animation-name: demo-claude;
+}
+.home-demo-cursor[data-who='chatgpt'] {
+  --tint: #10a37f;
+  animation-name: demo-chatgpt;
+}
+.home-demo-pointer {
+  position: absolute;
+  top: -1.5px;
+  left: -1.5px;
+  width: 16px;
+  height: 20px;
+  fill: var(--tint);
+  stroke: #fff;
+  stroke-width: 1.4;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 1px 1.5px oklch(0 0 0 / 0.25));
+  transform-origin: 1.5px 1.5px;
+}
+.home-demo-cursor[data-who='you'] .home-demo-pointer {
+  animation-name: demo-you-press;
+}
+.home-demo-cursor[data-who='claude'] .home-demo-pointer {
+  animation-name: demo-claude-press;
+}
+.home-demo-cursor[data-who='chatgpt'] .home-demo-pointer {
+  animation-name: demo-chatgpt-press;
+}
+.home-demo-tag,
+.home-demo-says {
+  position: absolute;
+  top: 18px;
+  left: 12px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--tint);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 16px;
+  white-space: nowrap;
+  box-shadow: 0 2px 6px -1px oklch(0 0 0 / 0.2);
+}
+.home-demo-tag svg {
+  width: 12px;
+  height: 12px;
+  fill: currentColor;
+}
+.home-demo-says {
+  top: 44px;
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--ink-soft);
+  font-weight: 500;
+  box-shadow: var(--shadow-overlay);
+  opacity: 0;
+}
+/* Agents arrive from the right, so their tags sit to the left of the pointer. */
+.home-demo-cursor:not([data-who='you']) :is(.home-demo-tag, .home-demo-says) {
+  left: auto;
+  right: -4px;
+}
+.home-demo-cursor[data-who='claude'] .home-demo-says {
+  animation-name: demo-claude-says;
+}
+.home-demo-cursor[data-who='chatgpt'] .home-demo-says {
+  animation-name: demo-chatgpt-says;
+}
+.home-demo-revisions {
+  position: absolute;
+  top: calc(var(--head) + 4 * var(--row) - 26px);
+  left: -20px;
+  z-index: 4;
+  width: 232px;
+  padding: 10px 12px 2px;
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: var(--shadow-overlay);
+  opacity: 0;
+  animation-name: demo-revisions;
+}
+.home-demo-revisions p {
+  margin-bottom: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.home-demo-revisions li {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  height: 38px;
+  overflow: hidden;
+  opacity: 0;
+  animation-name: demo-revisions;
+}
+.home-demo-revisions li + li {
+  border-top: 1px solid var(--line-soft);
+}
+.home-demo-revisions li[data-who='claude'] {
+  --tint: #d97757;
+  animation-name: demo-revision-claude;
+}
+.home-demo-revisions li[data-who='chatgpt'] {
+  --tint: #10a37f;
+  animation-name: demo-revision-chatgpt;
+}
+.home-demo-avatar {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  background: var(--tint, #5368d9);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+}
+.home-demo-avatar svg {
+  width: 11px;
+  height: 11px;
+  fill: currentColor;
+}
+.home-demo-revisions strong {
+  display: block;
+  font-size: 11px;
+  font-weight: 550;
+  line-height: 14px;
+  color: var(--ink-soft);
+}
+.home-demo-revisions small {
+  display: block;
+  font-size: 10px;
+  line-height: 13px;
+  color: var(--muted-ink-2);
+}
+@keyframes demo-scene {
+  0%,
+  92% {
+    opacity: 1;
+  }
+  94%,
+  97% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+@keyframes demo-design {
+  0%,
+  8% {
+    width: calc(30cqw - 6px);
+  }
+  19%,
+  94% {
+    width: calc(50cqw - 6px);
+  }
+  95%,
+  100% {
+    width: calc(30cqw - 6px);
+  }
+}
+@keyframes demo-build {
+  0%,
+  36% {
+    translate: 0;
+  }
+  48%,
+  94% {
+    translate: 20cqw;
+  }
+  95%,
+  100% {
+    translate: 0;
+  }
+}
+@keyframes demo-conflict {
+  0%,
+  9% {
+    opacity: 0;
+  }
+  11%,
+  46% {
+    opacity: 1;
+  }
+  48%,
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes demo-milestone {
+  0%,
+  63% {
+    opacity: 0;
+    scale: 0.3;
+  }
+  66% {
+    opacity: 1;
+    scale: 1.15;
+  }
+  68%,
+  94% {
+    opacity: 1;
+    scale: 1;
+  }
+  95%,
+  100% {
+    opacity: 0;
+    scale: 0.3;
+  }
+}
+@keyframes demo-drawn-down {
+  0%,
+  72% {
+    scale: 1 0;
+  }
+  77%,
+  94% {
+    scale: 1 1;
+  }
+  95%,
+  100% {
+    scale: 1 0;
+  }
+}
+@keyframes demo-drawn-across {
+  0%,
+  77% {
+    scale: 0 1;
+  }
+  80%,
+  94% {
+    scale: 1 1;
+  }
+  95%,
+  100% {
+    scale: 0 1;
+  }
+}
+@keyframes demo-you {
+  0% {
+    translate: 22cqw 250px;
+    opacity: 0;
+  }
+  2%,
+  92% {
+    opacity: 1;
+  }
+  6%,
+  8% {
+    translate: calc(30cqw - 3px) 56px;
+  }
+  19%,
+  20% {
+    translate: calc(50cqw - 3px) 56px;
+  }
+  27% {
+    translate: 58cqw 144px;
+  }
+  93% {
+    opacity: 0;
+  }
+  100% {
+    translate: 58cqw 144px;
+    opacity: 0;
+  }
+}
+@keyframes demo-you-press {
+  0%,
+  6%,
+  20%,
+  100% {
+    scale: 1;
+  }
+  7%,
+  19% {
+    scale: 0.86;
+  }
+}
+@keyframes demo-claude {
+  0%,
+  22% {
+    translate: 98cqw 64px;
+    opacity: 0;
+  }
+  24%,
+  92% {
+    opacity: 1;
+  }
+  31%,
+  36% {
+    translate: 40cqw 100px;
+  }
+  48%,
+  50% {
+    translate: 60cqw 100px;
+  }
+  58% {
+    translate: 98cqw 46px;
+  }
+  93% {
+    opacity: 0;
+  }
+  100% {
+    translate: 98cqw 46px;
+    opacity: 0;
+  }
+}
+@keyframes demo-claude-press {
+  0%,
+  34%,
+  49%,
+  100% {
+    scale: 1;
+  }
+  35%,
+  48% {
+    scale: 0.86;
+  }
+}
+@keyframes demo-claude-says {
+  0%,
+  28% {
+    opacity: 0;
+    translate: 0 4px;
+  }
+  31%,
+  53% {
+    opacity: 1;
+    translate: 0;
+  }
+  56%,
+  100% {
+    opacity: 0;
+    translate: 0;
+  }
+}
+@keyframes demo-chatgpt {
+  0%,
+  54% {
+    translate: 96cqw 250px;
+    opacity: 0;
+  }
+  56%,
+  92% {
+    opacity: 1;
+  }
+  93% {
+    opacity: 0;
+  }
+  62%,
+  64% {
+    translate: 85cqw 188px;
+  }
+  70%,
+  72% {
+    translate: calc(80cqw - 7px) 108px;
+  }
+  80%,
+  81% {
+    translate: calc(85cqw - 12px) 189px;
+  }
+  88% {
+    translate: 97cqw 128px;
+  }
+  100% {
+    translate: 97cqw 128px;
+    opacity: 0;
+  }
+}
+@keyframes demo-chatgpt-press {
+  0%,
+  62%,
+  65%,
+  71%,
+  81%,
+  100% {
+    scale: 1;
+  }
+  63%,
+  64%,
+  72%,
+  80% {
+    scale: 0.86;
+  }
+}
+@keyframes demo-chatgpt-says {
+  0%,
+  57% {
+    opacity: 0;
+    translate: 0 4px;
+  }
+  60%,
+  83% {
+    opacity: 1;
+    translate: 0;
+  }
+  86%,
+  100% {
+    opacity: 0;
+    translate: 0;
+  }
+}
+@keyframes demo-revisions {
+  0%,
+  20% {
+    opacity: 0;
+    translate: 0 6px;
+  }
+  22%,
+  92% {
+    opacity: 1;
+    translate: 0;
+  }
+  93%,
+  100% {
+    opacity: 0;
+    translate: 0;
+  }
+}
+@keyframes demo-revision-claude {
+  0%,
+  49% {
+    height: 0;
+    opacity: 0;
+  }
+  51%,
+  92% {
+    height: 38px;
+    opacity: 1;
+  }
+  93% {
+    height: 38px;
+    opacity: 0;
+  }
+  100% {
+    height: 0;
+    opacity: 0;
+  }
+}
+@keyframes demo-revision-chatgpt {
+  0%,
+  81% {
+    height: 0;
+    opacity: 0;
+  }
+  83%,
+  92% {
+    height: 38px;
+    opacity: 1;
+  }
+  93% {
+    height: 38px;
+    opacity: 0;
+  }
+  100% {
+    height: 0;
+    opacity: 0;
+  }
+}
+/* Without motion, hold the finished frame: every edit made, every Revision listed. */
+@media (prefers-reduced-motion: reduce) {
+  .home-demo * {
+    animation-delay: calc(var(--loop) * -0.89);
+    animation-play-state: paused;
+  }
+}
+@media (max-width: 520px) {
+  .home-demo-says {
+    display: none;
+  }
+}
+.home-recent {
+  padding: 24px 28px 20px;
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: var(--shadow-border);
+}
+@media (max-width: 520px) {
+  .home-recent {
+    padding: 20px 20px 14px;
+  }
+  .home-demo-milestone {
+    font-size: 0;
+    gap: 0;
+  }
+}
+.home-recent-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.home-recent-head p {
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--muted-ink-2);
 }
 .home-recent h2 {
   font-size: 18px;
@@ -1133,37 +1933,75 @@ li {
   letter-spacing: -0.4px;
 }
 .home-recent ul {
-  border-top: 1px solid var(--line);
   margin-top: 16px;
+  padding-top: 4px;
+  border-top: 1px solid var(--line);
 }
 .home-recent li {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 20px;
-  padding: 6px 0;
-  border-bottom: 1px solid var(--line-recent);
+  position: relative;
+  padding: 2px 0;
+}
+.home-recent li + li {
+  border-top: 1px solid var(--line-recent);
 }
 .home-recent li a {
-  flex: 1;
-  padding: 12px 12px;
+  display: block;
   margin: 0 -12px;
+  padding: 11px 52px 11px 12px;
   border-radius: 10px;
   transition: background-color 150ms ease-out;
 }
-.home-recent li a:hover {
-  background: var(--hover);
+.home-recent li:hover a {
+  background: var(--hover-2);
+}
+.home-recent li a:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: -2px;
 }
 .home-recent strong {
   display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: 14px;
   font-weight: 550;
 }
-.home-recent li span {
-  display: block;
-  font-size: 11px;
-  color: var(--muted-ink-2);
+.home-recent li a > span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   margin-top: 5px;
+  font-size: 12px;
+  color: var(--muted-ink-2);
+}
+.home-recent-access {
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--chip);
+  color: var(--ink-soft);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 16px;
+}
+.home-recent-access[data-access='View'] {
+  color: var(--muted-ink);
+}
+.home-recent-remove {
+  position: absolute;
+  top: 50%;
+  right: -2px;
+  translate: 0 -50%;
+}
+/* With a pointer, Remove waits until the row is hovered or focused; touch keeps it visible. */
+@media (hover: hover) {
+  .home-recent-remove {
+    opacity: 0;
+    transition-property: opacity, background-color, color, scale;
+  }
+  .home-recent li:hover .home-recent-remove,
+  .home-recent li:focus-within .home-recent-remove {
+    opacity: 1;
+  }
 }
 .home-empty {
   margin-top: 18px;
