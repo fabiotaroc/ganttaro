@@ -6,6 +6,7 @@ import { AppPreferences } from '@/components/app-preferences';
 import { DataProvider } from '@/components/convex-provider';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { Loading } from '@/components/wordmark';
+import { Analytics } from '@vercel/analytics/next';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -38,6 +39,7 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
             </DataProvider>
           </Suspense>
         </AppPreferences>
+        <Analytics />
       </body>
     </html>
   );
