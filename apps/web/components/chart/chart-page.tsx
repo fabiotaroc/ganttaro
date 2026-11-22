@@ -2,10 +2,14 @@
 import { useEffect, useRef, useState, type ReactElement } from 'react';
 import {
   CalendarCheckIcon,
+  CheckIcon,
   CircleAlertIcon,
+  CopyIcon,
   DownloadIcon,
   EyeIcon,
+  FileTextIcon,
   HistoryIcon,
+  ImageIcon,
   ListOrderedIcon,
   PlusIcon,
   Redo2Icon,
@@ -53,11 +57,13 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { CopyButton } from '@/components/copy-button';
 import { Loading, Wordmark } from '@/components/wordmark';
+import { copyChartJson, downloadChartJson } from '@/lib/export-json';
 import { recordRecent } from '@/lib/recent';
 import { Share } from './share';
 import { Shortcuts } from './shortcuts';
@@ -96,6 +102,12 @@ function LoadedChart({
   const [message, setMessage] = useState('');
   const [deleted, setDeleted] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
+  const [copiedJson, setCopiedJson] = useState(false);
+  useEffect(() => {
+    if (!copiedJson) return;
+    const timer = setTimeout(() => setCopiedJson(false), 1600);
+    return () => clearTimeout(timer);
+  }, [copiedJson]);
   const [undo, setUndo] = useState<Id<'revisions'>[]>([]),
     [redo, setRedo] = useState<Id<'revisions'>[]>([]);
   const [person] = useState(() => `Person ${crypto.randomUUID().slice(0, 4)}`);
@@ -415,10 +427,12 @@ function LoadedChart({
             <DropdownMenuTrigger
               render={<Button variant="ghost" size="sm" className="pl-1.5" disabled={exporting} />}
             >
-              <DownloadIcon />
-              {exporting ? 'Exporting…' : 'Export'}
+              {copiedJson && !exporting ? <CheckIcon /> : <DownloadIcon />}
+              <span aria-live="polite">
+                {exporting ? 'Exporting…' : copiedJson ? 'Copied' : 'Export'}
+              </span>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-36">
+            <DropdownMenuContent align="end" className="w-40">
               {(['pdf', 'png'] as const).map(format => (
                 <DropdownMenuItem
                   key={format}
@@ -430,9 +444,35 @@ function LoadedChart({
                       .finally(() => setExporting(false));
                   }}
                 >
+                  {format === 'pdf' ? <FileTextIcon /> : <ImageIcon />}
                   {format.toUpperCase()}
                 </DropdownMenuItem>
               ))}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={() => {
+                  void copyChartJson({ ...chart, zoom })
+                    .then(() => setCopiedJson(true))
+                    .catch(error =>
+                      report(error instanceof Error ? error.message : 'Could not copy JSON'),
+                    );
+                }}
+              >
+                <CopyIcon />
+                Copy JSON
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => {
+                  try {
+                    downloadChartJson({ ...chart, zoom });
+                  } catch (error) {
+                    report(error instanceof Error ? error.message : 'Could not export JSON');
+                  }
+                }}
+              >
+                <DownloadIcon />
+                Download JSON
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
           <span className="toolbar-divider" aria-hidden="true" />

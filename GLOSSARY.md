@@ -6,7 +6,7 @@ A shared, hosted Gantt chart that people edit by hand and agents edit through to
 
 **Chart**:
 One shared project timeline, opened by everyone through the same link. It holds all of a project's Items, Groups, Dependencies and Holidays.
-_Avoid_: Page, document, board, Gantt
+_Avoid_: Page, document, board, Gantt, graph
 
 **Edit Link**:
 A Chart's secret address that lets whoever has it view and edit the Chart.

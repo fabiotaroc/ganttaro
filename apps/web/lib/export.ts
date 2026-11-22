@@ -3,6 +3,7 @@ import { initWasm, Resvg } from '@resvg/resvg-wasm';
 import { PDFDocument } from 'pdf-lib';
 import { exportSvg, exportPage } from '@ganttaro/chart';
 import type { Chart } from '@ganttaro/core';
+import { exportFileName } from './export-json';
 let ready: Promise<void> | undefined;
 let font: Promise<Uint8Array> | undefined;
 export async function renderExport(chart: Chart): Promise<Uint8Array> {
@@ -41,7 +42,7 @@ export async function exportChart(chart: Chart, format: 'png' | 'pdf') {
   );
   const link = document.createElement('a');
   link.href = url;
-  link.download = `${chart.title.replace(/[^\p{L}\p{N} _-]/gu, '').slice(0, 80) || 'Chart'}.${format}`;
+  link.download = exportFileName(chart.title, format);
   link.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
